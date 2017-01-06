@@ -1,0 +1,47 @@
+#include <stdio.h>
+#include <opencv2/opencv.hpp>
+
+using namespace cv;
+
+int main(int argc, char** argv )
+{
+  int height,width,step,channels;
+  bool running = true;
+  
+  CvCapture* capture = cvCaptureFromCAM(0);
+  if( !capture )
+    {
+      fprintf( stderr, "ERROR: capture is NULL \n" );
+      getchar();
+      return -1;
+    }
+  IplImage* frame = cvQueryFrame(capture);
+    printf("what");
+  cvNamedWindow("RGB", WINDOW_AUTOSIZE );
+  namedWindow("HSV", WINDOW_AUTOSIZE );
+  
+  height = frame->height;
+  width = frame->width;
+  step = frame->widthStep;
+  CvSize size = cvSize(width,height);
+
+  IplImage* hsv_image = cvCreateImage(size,IPL_DEPTH_8U,3);
+  
+  while(running)
+    {
+      frame = cvQueryFrame(capture);
+      if(!frame)
+	{
+	  fprintf(stderr,"ITS A (FRAME)TRAP");
+	  getchar();
+	  break;
+	}
+      cvShowImage("RGB", frame);
+
+      cvCvtColor(frame,hsv_image,CV_BGR2HSV);
+      
+      cvShowImage("HSV",hsv_image);
+      if((cvWaitKey(10) & 255) == 27) break;
+    }
+  return 0;
+}
