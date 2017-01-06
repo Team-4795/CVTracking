@@ -11,7 +11,7 @@ int main(int argc, char** argv )
   int lowH = 111;
   int highH = 157;
   
-  int lowS = 129;
+  int lowS = 188;
   int highS = 255;
   
   int lowV = 0;
@@ -71,10 +71,33 @@ int main(int argc, char** argv )
       //filter to HSV and then the color picker filter
       cvCvtColor(frame,hsv_image,CV_BGR2HSV);
       cvInRangeS(hsv_image,hsv_min,hsv_max,threshHold_image);
+      
+      //find circles in the image
+      
+      // Memory for hough circles
+      CvMemStorage* storage = cvCreateMemStorage(0);
+      // hough detector works better with some smoothing of the image
+      cvSmooth(threshHold_image,threshHold_image, CV_GAUSSIAN, 9, 9 );
+      //hough transform to detect circle
+      CvSeq* circles = cvHoughCircles(threshHold_image, storage, CV_HOUGH_GRADIENT, 2
+				      ,threshHold_image->height/4, 100, 50, 10, 400);
+      for (int i = 0; i < circles->total; i++) {
+	//get the parameters of circles detected
+	float* p = (float*)cvGetSeqElem(circles, i);
+	printf("Object! x=%f y=%f r=%f\n\r", p[0], p[1], p[2]);
+
+	// draw a circle with the centre and the radius obtained from the hough transform
+	cvCircle(frame, cvPoint(cvRound(p[0]), cvRound(p[1])), 
+		 2, CV_RGB(255, 255, 255), -1, 8, 0);
+	cvCircle(frame, cvPoint(cvRound(p[0]), cvRound(p[1])), 
+		 cvRound(p[2]), CV_RGB(0, 255, 0), 2, 8, 0);
+      }
+      
       //show the raw image and the filtered image
       cvShowImage("RGB", frame);
       cvShowImage("Thresh",threshHold_image);
       //check if ESC is pressed to exit the program;
+      cvReleaseMemStorage(&storage);
       if((cvWaitKey(10) & 255) == 27) break;
     }
   return 0;
