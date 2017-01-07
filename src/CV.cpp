@@ -8,10 +8,10 @@ int main(int argc, char** argv )
   //image properties
   int height,width,step,channels;
   //HSV min max contraints
-  int lowH = 111;
-  int highH = 157;
+  int lowH = 170;
+  int highH = 199;
   
-  int lowS = 188;
+  int lowS = 132;
   int highS = 255;
   
   int lowV = 0;
@@ -59,6 +59,7 @@ int main(int argc, char** argv )
     {
       //get a fresh image from the camera
       frame = cvQueryFrame(capture);
+      
       //make sure the scalars are updated with the new HSV values
       CvScalar hsv_min = cvScalar(lowH,lowS,lowV);
       CvScalar hsv_max = cvScalar(highH,highS,highV);
