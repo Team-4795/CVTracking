@@ -41,6 +41,7 @@ int main(int argc, char** argv )
   //make our filtered images
   Mat hsv_image = Mat(size,CV_8UC3);
   Mat threshHold_image = Mat(size,CV_8UC1);
+  Mat contour_image = Mat(size,CV_8UC1);
   //make trackbars to control the HSV min max values
   createTrackbar("lowH","Control",&lowH,255);
   createTrackbar("lowS","Control",&lowS,255);
@@ -49,12 +50,12 @@ int main(int argc, char** argv )
   createTrackbar("highH","Control",&highH,255);
   createTrackbar("highS","Control",&highS,255);
   createTrackbar("highV","Control",&highV,255);
-  
+
   //convert our min max HSV values to scalar
   Scalar hsv_min = Scalar(lowH,lowS,lowV);
   Scalar hsv_max = Scalar(highH,highS,highV);
 
-
+  int thresh = 100;
   //main loop
   while(running)
     {
@@ -73,8 +74,18 @@ int main(int argc, char** argv )
       cvtColor(frame,hsv_image,CV_BGR2HSV);
       inRange(hsv_image,hsv_min,hsv_max,threshHold_image);
       
-      //find circles in the image
+      //find contours in the image
+      vector< vector<Point> > contours;
+      vector <Vec4i> hierarchy;
+      
+      Canny(threshHold_image,contour_image,thresh,thresh*2,3);
+      findContours(contour_image,contours,hierarchy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
 
+      for(int i= 0; i<contours.size();i++ )
+	{
+	  Scalar color = Scalar(0,0,0);
+	  drawContours(frame,contours,i,color,2,8,hierarchy,0,Point());
+	}
       /*
       // Memory for hough circles
       CvMemStorage* storage = cvCreateMemStorage(0);
