@@ -25,14 +25,14 @@ int main(int argc, char** argv )
   //image properties
   int height,width,step,channels;
   //HSV min max contraints
-  int lowH = 170;
-  int highH = 199;
+  int lowH = 53;
+  int highH = 54;
   
-  int lowS = 132;
-  int highS = 255;
+  int lowS = 0;
+  int highS = 10;
   
   int lowV = 0;
-  int highV = 203;
+  int highV = 255;
   //whileloop condition
   bool running = true;
   //this sets up the camera and allows us to get images from it
@@ -96,13 +96,15 @@ int main(int argc, char** argv )
       vector< vector<Point> > squares;
       vector <Vec4i> hierarchy;
       
+      //filter until only contours appear
       Canny(threshHold_image,contour_image,thresh,thresh*2,3);
       dilate(contour_image,contour_image, Mat(), Point(-1,-1));
       findContours(contour_image,contours,hierarchy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
-      
+
+      //approximation of sqaures and their property 
       vector<Point> approx;
 
-      // test each contour
+      // test each contour to see if its a square
       for( size_t i = 0; i < contours.size(); i++ )
 	{
 	  approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
@@ -123,13 +125,22 @@ int main(int argc, char** argv )
 		squares.push_back(approx);
 	    }
 	}
-
-      for( size_t i = 0; i < squares.size(); i++ )
+      //go through the squares to find their size and draw them
+      for(size_t i = 0; i < squares.size(); i++)
 	{
 	  const Point* p = &squares[i][0];
 	  int n = (int)squares[i].size();
-	  polylines(frame, &p, &n, 1, true, Scalar(0,255,0), 3, CV_AA);
+
+	  polylines(frame, &p, &n, 1, true, Scalar(0, 255, 0), 3, CV_AA);
+
+	  double cx = (p[2].x + p[0].x) / 2;
+	  double cy = (p[2].y + p[0].y) / 2;
+	  circle(frame, Point(cx, cy), 1, Scalar(0, 0, 0), 8, CV_AA);
+
+	  double area = abs(p[2].x - p[0].x) * abs(p[2].y - p[0].y);
+	  printf("Square# %d, Center: X: %d Y: %d, Area: %d\n", i, cx, cy, area);
 	}
+      
       //show the raw image and the filtered image
       imshow("RGB", frame);
       imshow("Thresh",threshHold_image);
@@ -140,28 +151,3 @@ int main(int argc, char** argv )
   return 0;
 }
 
-
-
-
-
-//circle algorithim
-/*
-// Memory for hough circles
-CvMemStorage* storage = cvCreateMemStorage(0);
-// hough detector works better with some smoothing of the image
-cvSmooth(threshHold_image,threshHold_image, CV_GAUSSIAN, 9, 9 );
-//hough transform to detect circle
-CvSeq* circles = cvHoughCircles(threshHold_image, storage, CV_HOUGH_GRADIENT, 2
-,threshHold_image->height/4, 100, 50, 10, 400);
-for (int i = 0; i < circles->total; i++) {
-//get the parameters of circles detected
-float* p = (float*)cvGetSeqElem(circles, i);
-printf("Object! x=%f y=%f r=%f\n\r", p[0], p[1], p[2]);
-
-// draw a circle with the centre and the radius obtained from the hough transform
-cvCircle(frame, cvPoint(cvRound(p[0]), cvRound(p[1])), 
-2, CV_RGB(255, 255, 255), -1, 8, 0);
-cvCircle(frame, cvPoint(cvRound(p[0]), cvRound(p[1])), 
-cvRound(p[2]), CV_RGB(0, 255, 0), 2, 8, 0);
-}
-*/
