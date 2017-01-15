@@ -62,7 +62,6 @@ int main(int argc, char** argv )
   //make all the windows needed
   namedWindow("RGB", WINDOW_AUTOSIZE );
   namedWindow("Thresh", WINDOW_AUTOSIZE);
-  namedWindow("Contour", WINDOW_AUTOSIZE);
   namedWindow("Control",WINDOW_AUTOSIZE);
   //get the camera image properties
   height = frame.size().height;
@@ -117,7 +116,6 @@ int main(int argc, char** argv )
       //show the raw image and the filtered image
       imshow("RGB", frame);
       imshow("Thresh",threshHold_image);
-      imshow("Contour",contour_image);
       //check if ESC is pressed to exit the program;
       //cvReleaseMemStorage(&storage);
       if((cvWaitKey(10) & 255) == 27) break;
