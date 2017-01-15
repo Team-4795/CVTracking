@@ -25,30 +25,34 @@ int main(int argc, char** argv )
   //image properties
   int height,width,step,channels;
   //HSV min max contraints
-  int lowH = 53;
-  int highH = 54;
+  int lowH = 70;
+  int highH = 96;
   
-  int lowS = 0;
-  int highS = 10;
+  int lowS = 56;
+  int highS = 255;
   
-  int lowV = 0;
+  int lowV =142;
   int highV = 255;
+
+  int thresh = 100;
   //whileloop condition
   bool running = true;
   //this sets up the camera and allows us to get images from it
-  VideoCapture capture(0);
+  VideoCapture capture(1);
   if(!capture.isOpened())
     {
       fprintf( stderr, "ERROR: capture is NULL \n" );
       getchar();
       return -1;
     }
+  capture.set(CV_CAP_PROP_BRIGHTNESS,0);
   //get the current image off the camera
   Mat frame;
   capture >> frame;
   //make all the windows needed
   namedWindow("RGB", WINDOW_AUTOSIZE );
   namedWindow("Thresh", WINDOW_AUTOSIZE);
+  namedWindow("Contour", WINDOW_AUTOSIZE);
   namedWindow("Control",WINDOW_AUTOSIZE);
   //get the camera image properties
   height = frame.size().height;
@@ -68,11 +72,11 @@ int main(int argc, char** argv )
   createTrackbar("highS","Control",&highS,255);
   createTrackbar("highV","Control",&highV,255);
 
+  createTrackbar("ThreshHold","Control",&thresh,100);
   //convert our min max HSV values to scalar
   Scalar hsv_min = Scalar(lowH,lowS,lowV);
   Scalar hsv_max = Scalar(highH,highS,highV);
 
-  int thresh = 100;
   //main loop
   while(running)
     {
@@ -97,11 +101,11 @@ int main(int argc, char** argv )
       vector <Vec4i> hierarchy;
       
       //filter until only contours appear
-      Canny(threshHold_image,contour_image,thresh,thresh*2,3);
+      Canny(threshHold_image,contour_image,255,255,3);
       dilate(contour_image,contour_image, Mat(), Point(-1,-1));
       findContours(contour_image,contours,hierarchy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
 
-      //approximation of sqaures and their property 
+      //approximation of sqaures and their properties
       vector<Point> approx;
 
       // test each contour to see if its a square
@@ -138,12 +142,13 @@ int main(int argc, char** argv )
 	  circle(frame, Point(cx, cy), 1, Scalar(0, 0, 0), 8, CV_AA);
 
 	  double area = abs(p[2].x - p[0].x) * abs(p[2].y - p[0].y);
-	  printf("Square# %d, Center: X: %d Y: %d, Area: %d\n", i, cx, cy, area);
+	  printf("Square# %d, Center: X: %d Y: %d, Area: %d\n",(int) i,(int) cx,(int) cy,(int) area);
 	}
       
       //show the raw image and the filtered image
       imshow("RGB", frame);
       imshow("Thresh",threshHold_image);
+      imshow("Contour",contour_image);
       //check if ESC is pressed to exit the program;
       //cvReleaseMemStorage(&storage);
       if((cvWaitKey(10) & 255) == 27) break;
