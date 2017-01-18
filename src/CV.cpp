@@ -6,8 +6,12 @@
 using namespace cv;
 using namespace std;
 
-//image properties
-int height,width,step,channels;
+//image containers
+Mat hsv_image;
+Mat threshHold_image;
+Mat contour_image;
+Mat frame;
+
 //HSV min max contraints
 int lowH = 70;
 int highH = 96;
@@ -18,22 +22,12 @@ int highS = 255;
 int lowV =142;
 int highV = 255;
 
-int thresh = 100;
-//whileloop condition
-bool running = true;
-//this sets up the camera and allows us to get images from it
-Size size;
-//make our filtered images
-Mat hsv_image;
-Mat threshHold_image;
-Mat contour_image;
-//get the current image off the camera
-Mat frame;
+
 Scalar hsv_min;
 Scalar hsv_max;
+
 VideoCapture capture(0);
 
-int pos_thresh = 3;
 class Arectangle
 {
 public:
@@ -47,6 +41,7 @@ void findBoundingBox( vector< vector<Point> > contours);
 void getContours(vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
 void findSquares( vector< vector<Point> > contours);
 void init();
+
 // helper function:
 // finds a cosine of angle between vectors
 // from pt0->pt1 and from pt0->pt2
@@ -61,6 +56,10 @@ static double angle( Point pt1, Point pt2, Point pt0 )
 
 int main(int argc, char** argv )
 {
+
+  //whileloop condition
+  bool running = true;
+
   init();
   //main loop
   while(running)
@@ -100,6 +99,12 @@ int main(int argc, char** argv )
 
 void init()
 {
+  
+  //image properties
+  int height,width,step,channels;
+  
+  Size size;
+   
   if(!capture.isOpened())
     {
       fprintf( stderr, "ERROR: capture is NULL \n" );
@@ -129,8 +134,7 @@ void init()
   createTrackbar("highH","Control",&highH,255);
   createTrackbar("highS","Control",&highS,255);
   createTrackbar("highV","Control",&highV,255);
-
-  createTrackbar("ThreshHold","Control",&thresh,100);
+  
   //convert our min max HSV values to scalar
   hsv_min = Scalar(lowH,lowS,lowV);
   hsv_max = Scalar(highH,highS,highV);
@@ -164,7 +168,8 @@ void findBoundingBox( vector< vector<Point> > contours)
 
 void findSquares( vector< vector<Point> > contours)
 {
-
+  int pos_thresh = 3;
+  
   //approximation of sqaures and their properties
   vector<Point> approx;
   vector< vector<Point> > squares;
@@ -206,26 +211,27 @@ void findSquares( vector< vector<Point> > contours)
       //printf("Square# %d, Center: X: %d Y: %d, Area: %d\n",(int) i,(int) cx,(int) cy,(int) area);
       polylines(frame, &p, &n, 1, true, Scalar(255, 0, 0), 2, CV_AA);
     }
-  
+  //merge duplicate squares into one average
   for(int i = 0; i > squares.size();i++)
     {
       for(int y = 0;y > squares.size();i++)
 	{
 	  if(i != y)
 	    {
-	      if(rects[i].cx > rects[y].cx + pos_thresh || rects[i].cx < rects[y].cx - pos_thresh)
+	      if(rects[i].cx < rects[y].cx + pos_thresh || rects[i].cx > rects[y].cx - pos_thresh)
 		{
-		  if(rects[i].cy > rects[y].cy + pos_thresh || rects[i].cy < rects[y].cy - pos_thresh)
+		  if(rects[i].cy < rects[y].cy + pos_thresh || rects[i].cy > rects[y].cy - pos_thresh)
 		    {
 		      finalRects[i].cx = (rects[i].cx + rects[y].cx) / 2;
 		      finalRects[i].cy = (rects[i].cy + rects[y].cy) /2;
 		      finalRects[i].area = (rects[i].area + rects[y].area) / 2 ;
-		     printf("Square!, Center: X: %d Y: %d, Area: %d\n",(int) finalRects[i].cx,(int) finalRects[i].cy,(int) finalRects[i].area);
+		      printf("Square!, Center: X: %d Y: %d, Area: %d\n",(int) finalRects[i].cx,(int) finalRects[i].cy,(int) finalRects[i].area);
 		    }
 		}
 	    }
 	}
     }
+  
 }
 
 
