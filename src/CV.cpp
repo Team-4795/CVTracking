@@ -5,8 +5,7 @@
 
 using namespace cv;
 using namespace std;
-
-VideoCapture capture(0);
+  VideoCapture capture(1);
 
 class Arectangle
 {
@@ -14,13 +13,43 @@ public:
   int cx,cy,area;
 };
 
+class Image_capsule
+{
+public:
+  //image containers
+  Mat frame;
+  Mat hsv_image;
+  Mat threshHold_image;
+  Mat contour_image;
+};
+
+class HSV_capsule
+{
+public:
+  //HSV min max contraints
+  int lowH = 70;
+  int highH = 96;
+  
+  int lowS = 56;
+  int highS = 255;
+  
+  int lowV =142;
+  int highV = 255;
+  
+  Scalar hsv_min;
+  Scalar hsv_max;
+ 
+};
+
+
+
 Arectangle rects[10];
 Arectangle finalRects[10];
 
-void findBoundingBox(Mat frame,vector< vector<Point> > contours);
-void getContours(Mat threshHold_image,Mat contour_image,vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
-void findSquares(Mat frame,vector< vector<Point> > contours);
-void init(Mat frame,Mat hsv_image,Mat threshHold_image,Mat contour_image,int lowH,int lowS,int lowV,int highH,int highS,int highV,Scalar hsv_min,Scalar hsv_max);
+void findBoundingBox(Image_capsule images,vector< vector<Point> > contours);
+void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
+void findSquares(Image_capsule images,vector< vector<Point> > contours);
+void init(Image_capsule images,HSV_capsule *HSVs);
 
 // helper function:
 // finds a cosine of angle between vectors
@@ -40,31 +69,16 @@ int main(int argc, char** argv )
   //whileloop condition
   bool running = true;
   
-  //HSV min max contraints
-  int lowH = 70;
-  int highH = 96;
+  Image_capsule images;
   
-  int lowS = 56;
-  int highS = 255;
-  
-  int lowV =142;
-  int highV = 255;
+  HSV_capsule HSVs;
 
-
-  Scalar hsv_min;
-  Scalar hsv_max;
-
-  //image containers
-  Mat frame;
-  Mat hsv_image;
-  Mat threshHold_image;
-  Mat contour_image;
-  init(frame,hsv_image,threshHold_image,contour_image,lowH,lowS,lowV,highH,highS,highV,hsv_min,hsv_max);
+  init(images,&HSVs);
   //main loop
   while(running)
     {
       //get a fresh image from the camera
-      capture >> frame;
+      capture >> images.frame;
       if(!capture.isOpened())
 	{
 	  fprintf( stderr, "ERROR: capture is NULL \n" );
@@ -72,31 +86,31 @@ int main(int argc, char** argv )
 	  return -1;
 	}
       //make sure the scalars are updated with the new HSV values
-      Scalar hsv_min = Scalar(lowH,lowS,lowV);
-      Scalar hsv_max = Scalar(highH,highS,highV);
+      HSVs.hsv_min = Scalar(HSVs.lowH,HSVs.lowS,HSVs.lowV);
+      HSVs.hsv_max = Scalar(HSVs.highH,HSVs.highS,HSVs.highV);
       //filter to HSV and then the color picker filter
-      cvtColor(frame,hsv_image,CV_BGR2HSV);
-      inRange(hsv_image,hsv_min,hsv_max,threshHold_image);
+      cvtColor(images.frame,images.hsv_image,CV_BGR2HSV);
+      inRange(images.hsv_image,HSVs.hsv_min,HSVs.hsv_max,images.threshHold_image);
       
       //find contours in the image
       vector< vector<Point> > contours;
       vector <Vec4i> hierarchy;
       
-      getContours(threshHold_image,contour_image,contours,hierarchy);
+      getContours(images,contours,hierarchy);
       
       //findBoundingBox(contours);
-      findSquares(frame,contours);
+      findSquares(images,contours);
 
       //show the raw image and the filtered image
-      imshow("RGB", frame);
-      imshow("Thresh",threshHold_image);
+      imshow("RGB", images.frame);
+      imshow("Thresh",images.threshHold_image);
       //check if ESC is pressed to exit the program;
       if((cvWaitKey(10) & 255) == 27) break;
     }
   return 0;
 }
 
-void init(Mat frame,Mat hsv_image,Mat threshHold_image,Mat contour_image,int lowH,int lowS,int lowV,int highH,int highS,int highV,Scalar hsv_min,Scalar hsv_max)
+void init(Image_capsule images,HSV_capsule *HSVs)
 {
   
   //image properties
@@ -111,43 +125,43 @@ void init(Mat frame,Mat hsv_image,Mat threshHold_image,Mat contour_image,int low
       return;
     }
   capture.set(CV_CAP_PROP_BRIGHTNESS,0);
-  capture >> frame;
+  capture >> images.frame;
   //make all the windows needed
   namedWindow("RGB", WINDOW_AUTOSIZE );
   namedWindow("Thresh", WINDOW_AUTOSIZE);
   namedWindow("Control",WINDOW_AUTOSIZE);
   //get the camera image properties
-  height = frame.size().height;
-  width = frame.size().width;
-  step = frame.step;
+  height = images.frame.size().height;
+  width = images.frame.size().width;
+  step = images.frame.step;
   size = Size(width,height);
   //make our filtered images
-  hsv_image = Mat(size,CV_8UC3);
-  threshHold_image = Mat(size,CV_8UC1);
-  contour_image = Mat(size,CV_8UC1);
+  images.hsv_image = Mat(size,CV_8UC3);
+  images.threshHold_image = Mat(size,CV_8UC1);
+  images.contour_image = Mat(size,CV_8UC1);
   //make trackbars to control the HSV min max values
-  createTrackbar("lowH","Control",&lowH,255);
-  createTrackbar("lowS","Control",&lowS,255);
-  createTrackbar("lowV","Control",&lowV,255);
+  createTrackbar("lowH","Control",&HSVs->lowH,255);
+  createTrackbar("lowS","Control",&HSVs->lowS,255);
+  createTrackbar("lowV","Control",&HSVs->lowV,255);
 
-  createTrackbar("highH","Control",&highH,255);
-  createTrackbar("highS","Control",&highS,255);
-  createTrackbar("highV","Control",&highV,255);
+  createTrackbar("highH","Control",&HSVs->highH,255);
+  createTrackbar("highS","Control",&HSVs->highS,255);
+  createTrackbar("highV","Control",&HSVs->highV,255);
   
   //convert our min max HSV values to scalar
-  hsv_min = Scalar(lowH,lowS,lowV);
-  hsv_max = Scalar(highH,highS,highV);
+  HSVs->hsv_min = Scalar(HSVs->lowH,HSVs->lowS,HSVs->lowV);
+  HSVs->hsv_max = Scalar(HSVs->highH,HSVs->highS,HSVs->highV);
  
 }
-void getContours(Mat threshHold_image,Mat contour_image,vector< vector<Point> > &contours,vector <Vec4i> hierarchy)
+void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <Vec4i> hierarchy)
 {
   //filter until only contours appear
-  Canny(threshHold_image,contour_image,255,255,3);
-  dilate(contour_image,contour_image, Mat(), Point(-1,-1));
-  findContours(contour_image,contours,hierarchy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
+  Canny(images.threshHold_image,images.contour_image,255,255,3);
+  dilate(images.contour_image,images.contour_image, Mat(), Point(-1,-1));
+  findContours(images.contour_image,contours,hierarchy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
 }
 
-void findBoundingBox(Mat frame,vector< vector<Point> > contours)
+void findBoundingBox(Image_capsule images,vector< vector<Point> > contours)
 {
   vector< vector<Point> > contours_poly(contours.size());
   vector<Rect> boundRect(contours.size());
@@ -161,11 +175,11 @@ void findBoundingBox(Mat frame,vector< vector<Point> > contours)
   for( int i = 0; i< contours.size(); i++ )
     {
       Scalar color = Scalar( 255, 0,0 );
-      rectangle( frame, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
+      rectangle(images.frame, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
     }
 }
 
-void findSquares(Mat frame,vector< vector<Point> > contours)
+void findSquares(Image_capsule images,vector< vector<Point> > contours)
 {
   int pos_thresh = 3;
   
@@ -201,36 +215,42 @@ void findSquares(Mat frame,vector< vector<Point> > contours)
 
       double cx = (p[2].x + p[0].x) / 2;
       double cy = (p[2].y + p[0].y) / 2;
-      circle(frame, Point(cx, cy), 1, Scalar(0, 0, 0), 3, CV_AA);
+      circle(images.frame, Point(cx, cy), 1, Scalar(0, 0, 0), 3, CV_AA);
 
       double area = abs(p[2].x - p[0].x) * abs(p[2].y - p[0].y);
       rects[i].cx = cx;
       rects[i].cy = cy;
       rects[i].area = area;
       //printf("Square# %d, Center: X: %d Y: %d, Area: %d\n",(int) i,(int) cx,(int) cy,(int) area);
-      polylines(frame, &p, &n, 1, true, Scalar(255, 0, 0), 2, CV_AA);
+      polylines(images.frame, &p, &n, 1, true, Scalar(255, 0, 0), 2, CV_AA);
     }
+
   //merge duplicate squares into one average
-  for(int i = 0; i > squares.size();i++)
+  if(squares.size() > 1)
     {
-      for(int y = 0;y > squares.size();i++)
+      int c = 0;
+      for(int i = 0; i < squares.size();i++)
 	{
-	  if(i != y)
+	  for(int y = i + 1;y < squares.size();y++)
 	    {
-	      if(rects[i].cx < rects[y].cx + pos_thresh || rects[i].cx > rects[y].cx - pos_thresh)
+	      if(i != y)
 		{
-		  if(rects[i].cy < rects[y].cy + pos_thresh || rects[i].cy > rects[y].cy - pos_thresh)
+		  if(rects[i].cx < rects[y].cx + pos_thresh || rects[i].cx > rects[y].cx - pos_thresh)
 		    {
-		      finalRects[i].cx = (rects[i].cx + rects[y].cx) / 2;
-		      finalRects[i].cy = (rects[i].cy + rects[y].cy) /2;
-		      finalRects[i].area = (rects[i].area + rects[y].area) / 2 ;
-		      printf("Square!, Center: X: %d Y: %d, Area: %d\n",(int) finalRects[i].cx,(int) finalRects[i].cy,(int) finalRects[i].area);
+		      if(rects[i].cy < rects[y].cy + pos_thresh || rects[i].cy > rects[y].cy - pos_thresh)
+			{
+			  finalRects[c].cx = (rects[i].cx + rects[y].cx) / 2;
+			  finalRects[c].cy = (rects[i].cy + rects[y].cy) /2;
+			  finalRects[c].area = (rects[i].area + rects[y].area) / 2 ;
+			  printf("Square# %d, Center: X: %d Y: %d, Area: %d\n",i,(int) finalRects[i].cx,(int) finalRects[i].cy,(int) finalRects[i].area);
+			  c++;
+			}
 		    }
 		}
 	    }
 	}
     }
-  
 }
+
 
 
