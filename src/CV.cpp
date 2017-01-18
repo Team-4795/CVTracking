@@ -6,26 +6,6 @@
 using namespace cv;
 using namespace std;
 
-//image containers
-Mat hsv_image;
-Mat threshHold_image;
-Mat contour_image;
-Mat frame;
-
-//HSV min max contraints
-int lowH = 70;
-int highH = 96;
-  
-int lowS = 56;
-int highS = 255;
-  
-int lowV =142;
-int highV = 255;
-
-
-Scalar hsv_min;
-Scalar hsv_max;
-
 VideoCapture capture(0);
 
 class Arectangle
@@ -37,10 +17,10 @@ public:
 Arectangle rects[10];
 Arectangle finalRects[10];
 
-void findBoundingBox( vector< vector<Point> > contours);
-void getContours(vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
-void findSquares( vector< vector<Point> > contours);
-void init();
+void findBoundingBox(Mat frame,vector< vector<Point> > contours);
+void getContours(Mat threshHold_image,Mat contour_image,vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
+void findSquares(Mat frame,vector< vector<Point> > contours);
+void init(Mat frame,Mat hsv_image,Mat threshHold_image,Mat contour_image,int lowH,int lowS,int lowV,int highH,int highS,int highV,Scalar hsv_min,Scalar hsv_max);
 
 // helper function:
 // finds a cosine of angle between vectors
@@ -56,11 +36,30 @@ static double angle( Point pt1, Point pt2, Point pt0 )
 
 int main(int argc, char** argv )
 {
-
+  
   //whileloop condition
   bool running = true;
+  
+  //HSV min max contraints
+  int lowH = 70;
+  int highH = 96;
+  
+  int lowS = 56;
+  int highS = 255;
+  
+  int lowV =142;
+  int highV = 255;
 
-  init();
+
+  Scalar hsv_min;
+  Scalar hsv_max;
+
+  //image containers
+  Mat frame;
+  Mat hsv_image;
+  Mat threshHold_image;
+  Mat contour_image;
+  init(frame,hsv_image,threshHold_image,contour_image,lowH,lowS,lowV,highH,highS,highV,hsv_min,hsv_max);
   //main loop
   while(running)
     {
@@ -83,10 +82,10 @@ int main(int argc, char** argv )
       vector< vector<Point> > contours;
       vector <Vec4i> hierarchy;
       
-      getContours(contours,hierarchy);
+      getContours(threshHold_image,contour_image,contours,hierarchy);
       
       //findBoundingBox(contours);
-      findSquares(contours);
+      findSquares(frame,contours);
 
       //show the raw image and the filtered image
       imshow("RGB", frame);
@@ -97,14 +96,14 @@ int main(int argc, char** argv )
   return 0;
 }
 
-void init()
+void init(Mat frame,Mat hsv_image,Mat threshHold_image,Mat contour_image,int lowH,int lowS,int lowV,int highH,int highS,int highV,Scalar hsv_min,Scalar hsv_max)
 {
   
   //image properties
   int height,width,step,channels;
   
   Size size;
-   
+  
   if(!capture.isOpened())
     {
       fprintf( stderr, "ERROR: capture is NULL \n" );
@@ -140,7 +139,7 @@ void init()
   hsv_max = Scalar(highH,highS,highV);
  
 }
-void getContours(vector< vector<Point> > &contours,vector <Vec4i> hierarchy)
+void getContours(Mat threshHold_image,Mat contour_image,vector< vector<Point> > &contours,vector <Vec4i> hierarchy)
 {
   //filter until only contours appear
   Canny(threshHold_image,contour_image,255,255,3);
@@ -148,7 +147,7 @@ void getContours(vector< vector<Point> > &contours,vector <Vec4i> hierarchy)
   findContours(contour_image,contours,hierarchy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
 }
 
-void findBoundingBox( vector< vector<Point> > contours)
+void findBoundingBox(Mat frame,vector< vector<Point> > contours)
 {
   vector< vector<Point> > contours_poly(contours.size());
   vector<Rect> boundRect(contours.size());
@@ -166,7 +165,7 @@ void findBoundingBox( vector< vector<Point> > contours)
     }
 }
 
-void findSquares( vector< vector<Point> > contours)
+void findSquares(Mat frame,vector< vector<Point> > contours)
 {
   int pos_thresh = 3;
   
