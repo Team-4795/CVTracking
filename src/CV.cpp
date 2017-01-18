@@ -31,12 +31,22 @@ Mat contour_image;
 Mat frame;
 Scalar hsv_min;
 Scalar hsv_max;
-VideoCapture capture(1);
+VideoCapture capture(0);
+
+int pos_thresh = 3;
+class Arectangle
+{
+public:
+  int cx,cy,area;
+};
+
+Arectangle rects[10];
+Arectangle finalRects[10];
 
 void findBoundingBox( vector< vector<Point> > contours);
 void getContours(vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
-void findSqaures( vector< vector<Point> > contours);
-
+void findSquares( vector< vector<Point> > contours);
+void init();
 // helper function:
 // finds a cosine of angle between vectors
 // from pt0->pt1 and from pt0->pt2
@@ -51,11 +61,50 @@ static double angle( Point pt1, Point pt2, Point pt0 )
 
 int main(int argc, char** argv )
 {
+  init();
+  //main loop
+  while(running)
+    {
+      //get a fresh image from the camera
+      capture >> frame;
+      if(!capture.isOpened())
+	{
+	  fprintf( stderr, "ERROR: capture is NULL \n" );
+	  getchar();
+	  return -1;
+	}
+      //make sure the scalars are updated with the new HSV values
+      Scalar hsv_min = Scalar(lowH,lowS,lowV);
+      Scalar hsv_max = Scalar(highH,highS,highV);
+      //filter to HSV and then the color picker filter
+      cvtColor(frame,hsv_image,CV_BGR2HSV);
+      inRange(hsv_image,hsv_min,hsv_max,threshHold_image);
+      
+      //find contours in the image
+      vector< vector<Point> > contours;
+      vector <Vec4i> hierarchy;
+      
+      getContours(contours,hierarchy);
+      
+      //findBoundingBox(contours);
+      findSquares(contours);
+
+      //show the raw image and the filtered image
+      imshow("RGB", frame);
+      imshow("Thresh",threshHold_image);
+      //check if ESC is pressed to exit the program;
+      if((cvWaitKey(10) & 255) == 27) break;
+    }
+  return 0;
+}
+
+void init()
+{
   if(!capture.isOpened())
     {
       fprintf( stderr, "ERROR: capture is NULL \n" );
       getchar();
-      return -1;
+      return;
     }
   capture.set(CV_CAP_PROP_BRIGHTNESS,0);
   capture >> frame;
@@ -85,45 +134,8 @@ int main(int argc, char** argv )
   //convert our min max HSV values to scalar
   hsv_min = Scalar(lowH,lowS,lowV);
   hsv_max = Scalar(highH,highS,highV);
-
-  //main loop
-  while(running)
-    {
-      //get a fresh image from the camera
-      capture >> frame;
-      if(!capture.isOpened())
-	{
-	  fprintf( stderr, "ERROR: capture is NULL \n" );
-	  getchar();
-	  return -1;
-	}
-      //make sure the scalars are updated with the new HSV values
-      Scalar hsv_min = Scalar(lowH,lowS,lowV);
-      Scalar hsv_max = Scalar(highH,highS,highV);
-      //filter to HSV and then the color picker filter
-      cvtColor(frame,hsv_image,CV_BGR2HSV);
-      inRange(hsv_image,hsv_min,hsv_max,threshHold_image);
-      
-      //find contours in the image
-      vector< vector<Point> > contours;
-      vector <Vec4i> hierarchy;
-      
-      getContours(contours,hierarchy);
-
-      findBoundingBox(contours);
-      
-     
-      //show the raw image and the filtered image
-      imshow("RGB", frame);
-      imshow("Thresh",threshHold_image);
-      //check if ESC is pressed to exit the program;
-      //cvReleaseMemStorage(&storage);
-      if((cvWaitKey(10) & 255) == 27) break;
-    }
-  return 0;
+ 
 }
-
-
 void getContours(vector< vector<Point> > &contours,vector <Vec4i> hierarchy)
 {
   //filter until only contours appear
@@ -145,12 +157,12 @@ void findBoundingBox( vector< vector<Point> > contours)
     }
   for( int i = 0; i< contours.size(); i++ )
     {
-      Scalar color = Scalar( 0, 0,0 );
+      Scalar color = Scalar( 255, 0,0 );
       rectangle( frame, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
     }
 }
 
-void findSqaures( vector< vector<Point> > contours)
+void findSquares( vector< vector<Point> > contours)
 {
 
   //approximation of sqaures and their properties
@@ -183,15 +195,37 @@ void findSqaures( vector< vector<Point> > contours)
       const Point* p = &squares[i][0];
       int n = (int)squares[i].size();
 
-      polylines(frame, &p, &n, 1, true, Scalar(0, 255, 0), 3, CV_AA);
-
       double cx = (p[2].x + p[0].x) / 2;
       double cy = (p[2].y + p[0].y) / 2;
-      circle(frame, Point(cx, cy), 1, Scalar(0, 0, 0), 8, CV_AA);
+      circle(frame, Point(cx, cy), 1, Scalar(0, 0, 0), 3, CV_AA);
 
       double area = abs(p[2].x - p[0].x) * abs(p[2].y - p[0].y);
-      printf("Square# %d, Center: X: %d Y: %d, Area: %d\n",(int) i,(int) cx,(int) cy,(int) area);
+      rects[i].cx = cx;
+      rects[i].cy = cy;
+      rects[i].area = area;
+      //printf("Square# %d, Center: X: %d Y: %d, Area: %d\n",(int) i,(int) cx,(int) cy,(int) area);
+      polylines(frame, &p, &n, 1, true, Scalar(255, 0, 0), 2, CV_AA);
     }
-      
+  
+  for(int i = 0; i > squares.size();i++)
+    {
+      for(int y = 0;y > squares.size();i++)
+	{
+	  if(i != y)
+	    {
+	      if(rects[i].cx > rects[y].cx + pos_thresh || rects[i].cx < rects[y].cx - pos_thresh)
+		{
+		  if(rects[i].cy > rects[y].cy + pos_thresh || rects[i].cy < rects[y].cy - pos_thresh)
+		    {
+		      finalRects[i].cx = (rects[i].cx + rects[y].cx) / 2;
+		      finalRects[i].cy = (rects[i].cy + rects[y].cy) /2;
+		      finalRects[i].area = (rects[i].area + rects[y].area) / 2 ;
+		     printf("Square!, Center: X: %d Y: %d, Area: %d\n",(int) finalRects[i].cx,(int) finalRects[i].cy,(int) finalRects[i].area);
+		    }
+		}
+	    }
+	}
+    }
 }
+
 
