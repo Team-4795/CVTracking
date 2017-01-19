@@ -5,8 +5,16 @@
 
 using namespace cv;
 using namespace std;
-  VideoCapture capture(1);
 
+class Settings
+{
+public:
+  //whileloop condition
+  bool running = true;
+  bool GUI = false;
+  bool debug = false;
+};
+  
 class Arectangle
 {
 public:
@@ -42,14 +50,14 @@ public:
 };
 
 
-
+VideoCapture capture(0);
 Arectangle rects[10];
 Arectangle finalRects[10];
 
 void findBoundingBox(Image_capsule images,vector< vector<Point> > contours);
 void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
 void findSquares(Image_capsule images,vector< vector<Point> > contours);
-void init(Image_capsule images,HSV_capsule *HSVs);
+void init(Image_capsule images,HSV_capsule *HSVs,Settings settings);
 
 // helper function:
 // finds a cosine of angle between vectors
@@ -65,17 +73,28 @@ static double angle( Point pt1, Point pt2, Point pt0 )
 
 int main(int argc, char** argv )
 {
-  
-  //whileloop condition
-  bool running = true;
-  
+  Settings settings;
   Image_capsule images;
-  
   HSV_capsule HSVs;
-
-  init(images,&HSVs);
+  if(argc > 1)
+    {
+      if(strcmp(argv[1],"-u") == 0)
+	{
+	  settings.GUI = true;
+	}
+      else if(strcmp(argv[1],"-d") == 0)
+	{
+	  settings.GUI = true;
+	  settings.debug = true;
+	}
+    }
+  else
+    {
+      settings.GUI = false;
+    }
+  init(images,&HSVs,settings);
   //main loop
-  while(running)
+  while(settings.running)
     {
       //get a fresh image from the camera
       capture >> images.frame;
@@ -98,19 +117,26 @@ int main(int argc, char** argv )
       
       getContours(images,contours,hierarchy);
       
-      //findBoundingBox(contours);
+      //findBoundingBox(images,contours);
       findSquares(images,contours);
 
-      //show the raw image and the filtered image
-      imshow("RGB", images.frame);
-      imshow("Thresh",images.threshHold_image);
+      if(settings.GUI)
+	{
+	  //show the raw image and the filtered images
+	  imshow("RGB", images.frame);
+	  if(settings.debug)
+	    {
+	      imshow("Thresh",images.threshHold_image);
+	    }
+	}
+
       //check if ESC is pressed to exit the program;
       if((cvWaitKey(10) & 255) == 27) break;
     }
   return 0;
 }
 
-void init(Image_capsule images,HSV_capsule *HSVs)
+void init(Image_capsule images,HSV_capsule *HSVs,Settings settings)
 {
   
   //image properties
@@ -126,10 +152,18 @@ void init(Image_capsule images,HSV_capsule *HSVs)
     }
   capture.set(CV_CAP_PROP_BRIGHTNESS,0);
   capture >> images.frame;
-  //make all the windows needed
-  namedWindow("RGB", WINDOW_AUTOSIZE );
-  namedWindow("Thresh", WINDOW_AUTOSIZE);
-  namedWindow("Control",WINDOW_AUTOSIZE);
+  if(settings.GUI)
+    {
+      //make all the windows needed
+      namedWindow("RGB", WINDOW_AUTOSIZE );
+      if(settings.debug)
+	{
+	  
+	  namedWindow("Thresh", WINDOW_AUTOSIZE);
+	  namedWindow("Control",WINDOW_AUTOSIZE);
+	}
+
+    }
   //get the camera image properties
   height = images.frame.size().height;
   width = images.frame.size().width;
