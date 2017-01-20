@@ -224,21 +224,37 @@ void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <
 
 void findConvexHull(Image_capsule images,vector< vector<Point> > &contours, vector<vector<Point> > &hull)
 {
+  int minArea = 0;
   for( int i = 0; i < contours.size(); i++ )
     {
       convexHull( Mat(contours[i]), hull[i], false );
     }
-
+  //find largest area and change it to make it min area
+  for( int i = 0; i< contours.size(); i++ )
+    {   
+      int area = contourArea(hull[i]);
+      if(area > minArea)
+	{
+	  minArea = area;
+	  minArea = minArea / 10;
+	}
+    }
+  int c = 1;
   for( int i = 0; i< contours.size(); i++ )
     {
-      Scalar color = Scalar( 255, 0, 0 );
-      drawContours(images.frame, hull, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
       int area = contourArea(hull[i]);
-      Moments M = moments(hull[i]);
-      int cx = int(M.m10/M.m00);
-      int cy = int(M.m01/M.m00);
-      printf("target#%d: Area: %d X:%d Y:%d \n",i,area,cx,cy);
+      if(area > minArea)
+	{
+	  Scalar color = Scalar( 255, 0, 0 );
+	  drawContours(images.frame, hull, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
+	  Moments M = moments(hull[i]);
+	  int cx = int(M.m10/M.m00);
+	  int cy = int(M.m01/M.m00);
+	  printf("target#%d: Area: %d X:%d Y:%d \n",c,area,cx,cy);
+	  c++;
+	}
     }
+  
 }
 void findBoundingBox(Image_capsule images,vector< vector<Point> > contours)
 {
