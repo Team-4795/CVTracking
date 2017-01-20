@@ -52,10 +52,7 @@ public:
  
 };
 
-
 VideoCapture capture;
-Arectangle rects[10];
-Arectangle finalRects[10];
 
 void findBoundingBox(Image_capsule images,vector< vector<Point> > contours);
 void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
@@ -261,6 +258,11 @@ void findBoundingBox(Image_capsule images,vector< vector<Point> > contours)
       rectangle(images.frame, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
     }
 }
+
+
+//// currently unused algorithm
+Arectangle rects[10];
+Arectangle finalRects[10];
 
 void findSquares(Image_capsule images,vector< vector<Point> > contours)
 {
