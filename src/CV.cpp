@@ -342,7 +342,8 @@ void findSquares(Image_capsule images,vector< vector<Point> > contours)
 			  finalRects[c].cx = (rects[i].cx + rects[y].cx) / 2;
 			  finalRects[c].cy = (rects[i].cy + rects[y].cy) /2;
 			  finalRects[c].area = (rects[i].area + rects[y].area) / 2 ;
-			  printf("Square# %d, Center: X: %d Y: %d, Area: %d\n",i,(int) finalRects[i].cx,(int) finalRects[i].cy,(int) finalRects[i].area);
+			  printf("Square# %d, Center: X: %d Y: %d, Area: %d\n"
+				 ,i,(int) finalRects[i].cx,(int) finalRects[i].cy,(int) finalRects[i].area);
 			  c++;
 			}
 		    }
