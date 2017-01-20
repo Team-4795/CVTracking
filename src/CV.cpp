@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <math.h>
+#include <unistd.h>
 #include <opencv2/opencv.hpp>
 
 using namespace cv;
@@ -77,22 +78,26 @@ int main(int argc, char** argv )
   Settings settings;
   Image_capsule images;
   HSV_capsule HSVs;
-  if(argc > 1)
+  
+  int arg;
+  while((arg = getopt(argc,argv,"ud")) != -1)
+    switch(arg)
+      {
+      case 'u':
+	settings.GUI = true;
+	break;
+      case 'd':
+	settings.GUI = true;
+	settings.debug = true;
+	break;
+      }
+
+  int index;
+  for( index = optind; index < argc; index++ )
     {
-      if(strcmp(argv[1],"-u") == 0)
-	{
-	  settings.GUI = true;
-	}
-      else if(strcmp(argv[1],"-d") == 0)
-	{
-	  settings.GUI = true;
-	  settings.debug = true;
-	}
+      fprintf(stderr, "Invalid argument: %s\n", argv[index]);
     }
-  else
-    {
-      settings.GUI = false;
-    }
+  
   init(images,&HSVs,settings);
   //main loop
   while(settings.running)
