@@ -63,13 +63,13 @@ void findConvexHull(Image_capsule images,vector< vector<Point> > &contours,vecto
 // helper function:
 // finds a cosine of angle between vectors
 // from pt0->pt1 and from pt0->pt2
-static double angle( Point pt1, Point pt2, Point pt0 )
+static double vector_cos( Point pt1, Point pt2, Point pt0 )
 {
   double dx1 = pt1.x - pt0.x;
   double dy1 = pt1.y - pt0.y;
   double dx2 = pt2.x - pt0.x;
   double dy2 = pt2.y - pt0.y;
-  return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
+  return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2));
 }
 
 int main(int argc, char** argv )
@@ -253,7 +253,7 @@ void findSquares(Image_capsule images,vector< vector<Point> > contours)
 	  for( int j = 2; j < 5; j++ )
 	    {
 	      // find the maximum cosine of the angle between joint edges
-	      double cosine = fabs(angle(approx[j%4], approx[j-2], approx[j-1]));
+	      double cosine = fabs(vector_cos(approx[j%4], approx[j-2], approx[j-1]));
 	      maxCosine = MAX(maxCosine, cosine);
 	    }
 
