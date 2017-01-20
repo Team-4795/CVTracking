@@ -29,6 +29,7 @@ public:
   Mat hsv_image;
   Mat threshHold_image;
   Mat contour_image;
+  Mat hull_image;
 };
 
 class HSV_capsule
@@ -50,7 +51,7 @@ public:
 };
 
 
-VideoCapture capture(0);
+VideoCapture capture(1);
 Arectangle rects[10];
 Arectangle finalRects[10];
 
@@ -58,7 +59,7 @@ void findBoundingBox(Image_capsule images,vector< vector<Point> > contours);
 void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
 void findSquares(Image_capsule images,vector< vector<Point> > contours);
 void init(Image_capsule images,HSV_capsule *HSVs,Settings settings);
-
+void findConvexHull(Image_capsule images,vector< vector<Point> > &contours,vector<vector<Point> > &hull);
 // helper function:
 // finds a cosine of angle between vectors
 // from pt0->pt1 and from pt0->pt2
@@ -114,11 +115,12 @@ int main(int argc, char** argv )
       //find contours in the image
       vector< vector<Point> > contours;
       vector <Vec4i> hierarchy;
-      
       getContours(images,contours,hierarchy);
       
+      vector< vector<Point> > hull( contours.size() );
+      findConvexHull(images,contours,hull);
       //findBoundingBox(images,contours);
-      findSquares(images,contours);
+      //findSquares(images,hull);
 
       if(settings.GUI)
 	{
@@ -173,6 +175,7 @@ void init(Image_capsule images,HSV_capsule *HSVs,Settings settings)
   images.hsv_image = Mat(size,CV_8UC3);
   images.threshHold_image = Mat(size,CV_8UC1);
   images.contour_image = Mat(size,CV_8UC1);
+  images.hull_image = Mat(size,CV_8UC1);
   //make trackbars to control the HSV min max values
   createTrackbar("lowH","Control",&HSVs->lowH,255);
   createTrackbar("lowS","Control",&HSVs->lowS,255);
@@ -191,21 +194,38 @@ void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <
 {
   //filter until only contours appear
   Canny(images.threshHold_image,images.contour_image,255,255,3);
-  dilate(images.contour_image,images.contour_image, Mat(), Point(-1,-1));
+  morphologyEx(images.contour_image,images.contour_image,MORPH_CLOSE, Mat(), Point(-1,-1));
   findContours(images.contour_image,contours,hierarchy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
 }
 
+void findConvexHull(Image_capsule images,vector< vector<Point> > &contours, vector<vector<Point> > &hull)
+{
+
+  for( int i = 0; i < contours.size(); i++ )
+    {
+      convexHull( Mat(contours[i]), hull[i], false );
+    }
+
+  for( int i = 0; i< contours.size(); i++ )
+    {
+      Scalar color = Scalar( 255, 0, 0 );
+      drawContours(images.frame, hull, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
+      int area = contourArea(hull[i]);
+      //printf("target#%d: Area: %d\n",i,area);
+    }
+}
 void findBoundingBox(Image_capsule images,vector< vector<Point> > contours)
 {
   vector< vector<Point> > contours_poly(contours.size());
   vector<Rect> boundRect(contours.size());
-
+  vector<Rect> filteredRect(boundRect.size());
 
   for(int i = 0;i < contours.size(); i++)
     {
       approxPolyDP(Mat(contours[i]),contours_poly[i],3,true);
       boundRect[i] = boundingRect( Mat(contours_poly[i]) );
     }
+  
   for( int i = 0; i< contours.size(); i++ )
     {
       Scalar color = Scalar( 255, 0,0 );
