@@ -200,7 +200,6 @@ void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <
 
 void findConvexHull(Image_capsule images,vector< vector<Point> > &contours, vector<vector<Point> > &hull)
 {
-
   for( int i = 0; i < contours.size(); i++ )
     {
       convexHull( Mat(contours[i]), hull[i], false );
@@ -211,7 +210,10 @@ void findConvexHull(Image_capsule images,vector< vector<Point> > &contours, vect
       Scalar color = Scalar( 255, 0, 0 );
       drawContours(images.frame, hull, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
       int area = contourArea(hull[i]);
-      //printf("target#%d: Area: %d\n",i,area);
+      Moments M = moments(hull[i]);
+      int cx = int(M.m10/M.m00);
+      int cy = int(M.m01/M.m00);
+      printf("target#%d: Area: %d X:%d Y:%d \n",i,area,cx,cy);
     }
 }
 void findBoundingBox(Image_capsule images,vector< vector<Point> > contours)
