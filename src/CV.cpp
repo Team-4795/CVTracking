@@ -165,7 +165,7 @@ void init(Image_capsule images,HSV_capsule *HSVs,Settings settings)
 {
   
   //image properties
-  int height,width,step,channels;
+  int height,width;
   
   Size size;
 
@@ -193,7 +193,6 @@ void init(Image_capsule images,HSV_capsule *HSVs,Settings settings)
   //get the camera image properties
   height = images.frame.size().height;
   width = images.frame.size().width;
-  step = images.frame.step;
   size = Size(width,height);
   //make our filtered images
   images.hsv_image = Mat(size,CV_8UC3);
