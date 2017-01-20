@@ -14,6 +14,7 @@ public:
   bool running = true;
   bool GUI = false;
   bool debug = false;
+  int camera_index = 0;
 };
   
 class Arectangle
@@ -52,7 +53,7 @@ public:
 };
 
 
-VideoCapture capture(1);
+VideoCapture capture;
 Arectangle rects[10];
 Arectangle finalRects[10];
 
@@ -73,6 +74,15 @@ static double vector_cos( Point pt1, Point pt2, Point pt0 )
   return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2));
 }
 
+static void show_help( void )
+{
+  printf("CVTracking [-udh] [-c <camera index>]\n");
+  printf("  -u  User mode (camera view only)\n");
+  printf("  -d  Debug mode (camera, threshold, control views, settings sliders)\n");
+  printf("  -h  Show this help menu\n");
+  printf("  -c  Set the camera index to use (starts at zero)\n");
+}
+
 int main(int argc, char** argv )
 {
   Settings settings;
@@ -80,7 +90,7 @@ int main(int argc, char** argv )
   HSV_capsule HSVs;
   
   int arg;
-  while((arg = getopt(argc,argv,"ud")) != -1)
+  while((arg = getopt(argc,argv,"udhc:")) != -1)
     switch(arg)
       {
       case 'u':
@@ -90,12 +100,23 @@ int main(int argc, char** argv )
 	settings.GUI = true;
 	settings.debug = true;
 	break;
+      case 'c':
+	settings.camera_index = (int) strtol(optarg, NULL, 10);
+	break;
+      case 'h':
+      default:
+	show_help();
+	return (optopt == 'h' ? 0 : 1);
       }
 
-  int index;
-  for( index = optind; index < argc; index++ )
+  if(optind != argc)
     {
-      fprintf(stderr, "Invalid argument: %s\n", argv[index]);
+      int index;
+      for( index = optind; index < argc; index++ )
+	fprintf(stderr, "Invalid argument: %s\n", argv[index]);
+      
+      show_help();
+      return 1;
     }
   
   init(images,&HSVs,settings);
@@ -150,7 +171,8 @@ void init(Image_capsule images,HSV_capsule *HSVs,Settings settings)
   int height,width,step,channels;
   
   Size size;
-  
+
+  capture = VideoCapture(settings.camera_index);
   if(!capture.isOpened())
     {
       fprintf( stderr, "ERROR: capture is NULL \n" );
