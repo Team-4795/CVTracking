@@ -2,173 +2,14 @@
 #include <math.h>
 #include <unistd.h>
 #include <signal.h>
-#include <iostream>
-#include <fstream>
-#include <opencv2/opencv.hpp>
-#include <json/json.h>
+#include "CV.h"
 
 using namespace cv;
 using namespace std;
 
-class Settings
-{
-  // settings defaults
-  static const int def_cam_index = 0;
-  static const int def_lowH = 70;
-  static const int def_highH = 96;
-  static const int def_lowS = 56;
-  static const int def_highS = 255;
-  static const int def_lowV = 142;
-  static const int def_highV = 255;
-  // json keys
-  static const string cam_index_key;
-  static const string lowH_key;
-  static const string highH_key;
-  static const string lowS_key;
-  static const string highS_key;
-  static const string lowV_key;
-  static const string highV_key;
-public:
-  //whileloop condition
-  bool running = true;
-  bool GUI = false;
-  bool debug = false;
-  
-  int camera_index;
-  int lowH,highH;
-  int lowS,highS;
-  int lowV,highV;
-
-  Settings( void )
-    : camera_index(def_cam_index),
-      lowH(def_lowH), highH(def_highH),
-      lowS(def_lowS), highS(def_highS),
-      lowV(def_lowV), highV(def_highV) {}
-  Settings( int camera_index,
-	    int lowH, int highH,
-	    int lowS, int highS,
-	    int lowV, int highV )
-    : camera_index(camera_index),
-      lowH(lowH), highH(highH),
-      lowS(lowS), highS(highS),
-      lowV(lowV), highV(highV) {}
-  void load_config( string filename );
-  void save_config( string filename );
-};
-
-const string Settings::cam_index_key = "camera-index";
-const string Settings::lowH_key = "lowH";
-const string Settings::highH_key = "highH";
-const string Settings::lowS_key = "lowS";
-const string Settings::highS_key = "highS";
-const string Settings::lowV_key = "lowV";
-const string Settings::highV_key = "highV";
-  
-class Arectangle
-{
-public:
-  int cx,cy,area;
-};
-
-class Image_capsule
-{
-public:
-  //image containers
-  Mat frame;
-  Mat hsv_image;
-  Mat threshHold_image;
-  Mat contour_image;
-  Mat hull_image;
-};
-
-class HSV_capsule
-{
-public:
-  //HSV min max contraints  
-  Scalar hsv_min;
-  Scalar hsv_max;
-};
-
-VideoCapture capture;
-
-void findBoundingBox(Image_capsule images,vector< vector<Point> > contours);
-void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
-void findSquares(Image_capsule images,vector< vector<Point> > contours);
-void init(Image_capsule images,HSV_capsule *HSVs,Settings &settings);
-void findConvexHull(Image_capsule images,vector< vector<Point> > &contours,vector<vector<Point> > &hull);
-// helper function:
-// finds a cosine of angle between vectors
-// from pt0->pt1 and from pt0->pt2
-static double vector_cos( Point pt1, Point pt2, Point pt0 )
-{
-  double dx1 = pt1.x - pt0.x;
-  double dy1 = pt1.y - pt0.y;
-  double dx2 = pt2.x - pt0.x;
-  double dy2 = pt2.y - pt0.y;
-  return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2));
-}
-
-static void show_help( void )
-{
-  printf("CVTracking [-udh] [-c <camera index>]\n");
-  printf("  -u  User mode (camera view only)\n");
-  printf("  -d  Debug mode (camera, threshold, control views, settings sliders)\n");
-  printf("  -h  Show this help menu\n");
-  printf("  -c  Set the camera index to use (starts at zero)\n");
-}
-
-void Settings::load_config( string filename )
-{
-  ifstream file(filename, fstream::binary);
-  if(file.fail())
-    {
-      printf("Config file not found: %s\nUsing default config...\n", filename.c_str());
-      camera_index = def_cam_index;
-      lowH = def_lowH;
-      highH = def_highH;
-      lowS = def_lowS;
-      highS = def_highS;
-      lowV = def_lowV;
-      highV = def_highV;
-      return;
-    }
-  
-  Json::Value root;
-  file >> root;
-  file.close();
-  
-  camera_index = root.get(cam_index_key, def_cam_index).asInt();
-  lowH = root.get(lowH_key, def_lowH).asInt();
-  highH = root.get(highH_key, def_highH).asInt();
-  lowS = root.get(lowS_key, def_lowS).asInt();
-  highS = root.get(highS_key, def_highS).asInt();
-  lowV = root.get(lowV_key, def_lowV).asInt();
-  highV = root.get(highV_key, def_highV).asInt();
-}
-
-void Settings::save_config( string filename )
-{
-  Json::Value root;
-  
-  root[cam_index_key] = camera_index;
-
-  root[lowH_key] = lowH;
-  root[highH_key] = highH;
-
-  root[lowS_key] = lowS;
-  root[highS_key] = highS;
-
-  root[lowV_key] = lowV;
-  root[highV_key] = highV;
-
-  ofstream file(filename, fstream::binary | fstream::trunc);
-  file << root;
-  file.close();
-}
-
 Settings settings;
 
-void handle_signal( int signal )
+static void handle_signal( int signal )
 {
   printf("Saving settings into config.json...\n");
   settings.save_config("config.json");
@@ -183,6 +24,17 @@ void handle_signal( int signal )
       exit(1);
     }
 }
+
+void show_help( void )
+{
+  printf("CVTracking [-udh] [-c <camera index>]\n");
+  printf("  -u  User mode (camera view only)\n");
+  printf("  -d  Debug mode (camera, threshold, control views, settings sliders)\n");
+  printf("  -h  Show this help menu\n");
+  printf("  -c  Set the camera index to use (starts at zero)\n");
+}
+
+VideoCapture capture;
 
 int main(int argc, char** argv )
 {
@@ -406,6 +258,18 @@ void findBoundingBox(Image_capsule images,vector< vector<Point> > contours)
 Arectangle rects[10];
 Arectangle finalRects[10];
 
+// helper function:
+// finds a cosine of angle between vectors
+// from pt0->pt1 and from pt0->pt2
+static double vector_cos( Point pt1, Point pt2, Point pt0 )
+{
+  double dx1 = pt1.x - pt0.x;
+  double dy1 = pt1.y - pt0.y;
+  double dx2 = pt2.x - pt0.x;
+  double dy2 = pt2.y - pt0.y;
+  return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2));
+}
+
 void findSquares(Image_capsule images,vector< vector<Point> > contours)
 {
   int pos_thresh = 3;
@@ -479,6 +343,3 @@ void findSquares(Image_capsule images,vector< vector<Point> > contours)
 	}
     }
 }
-
-
-
