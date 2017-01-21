@@ -247,9 +247,13 @@ void findConvexHull(Image_capsule images,vector< vector<Point> > &contours, vect
 	  Scalar color = Scalar( 255, 0, 0 );
 	  drawContours(images.frame, hull, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
 	  Moments M = moments(hull[i]);
-	  int cx = int(M.m10/M.m00);
-	  int cy = int(M.m01/M.m00);
-	  printf("target#%d: Area: %d X:%d Y:%d \n",c,area,cx,cy);
+	  int u = int(M.m10/M.m00);
+	  int v = int(M.m01/M.m00);
+	  
+	  double cx =0;
+	  double f =0;
+	  double angle = atan((u - cx) / f);
+	  printf("target#%d: Area: %d X:%d Y:%d Angle:%d \n",c,area,u,v,(int) angle);
 	  c++;
 	}
     }
