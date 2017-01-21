@@ -2,20 +2,61 @@
 #include <iostream>
 #include <math.h>
 #include <unistd.h>
+#include <fstream>
 #include <opencv2/opencv.hpp>
+#include <json/json.h>
 
 using namespace cv;
 using namespace std;
 
 class Settings
 {
+  // settings defaults
+  static const int def_cam_index = 0;
+  static const int def_lowH = 70;
+  static const int def_highH = 96;
+  static const int def_lowS = 56;
+  static const int def_highS = 255;
+  static const int def_lowV = 142;
+  static const int def_highV = 255;
+  // json keys
+  static const string cam_index_key;
+  static const string lowH_key;
+  static const string highH_key;
+  static const string lowS_key;
+  static const string highS_key;
+  static const string lowV_key;
+  static const string highV_key;
 public:
   //whileloop condition
   bool running = true;
   bool GUI = false;
   bool debug = false;
-  int camera_index = 0;
+  
+  int camera_index;
+  int lowH,highH;
+  int lowS,highS;
+  int lowV,highV;
+
+  Settings( int camera_index,
+	    int lowH, int highH,
+	    int lowS, int highS,
+	    int lowV, int highV )
+    : camera_index(camera_index),
+      lowH(lowH), highH(highH),
+      lowS(lowS), highS(highS),
+      lowV(lowV), highV(highV) {}
+  static Settings load_config( string filename );
+  static void save_config( Settings &settings, string filename );
 };
+
+const string Settings::cam_index_key = "camera-index";
+const string Settings::lowH_key = "lowH";
+const string Settings::highH_key = "highH";
+const string Settings::lowS_key = "lowS";
+const string Settings::highS_key = "highS";
+const string Settings::lowV_key = "lowV";
+const string Settings::highV_key = "highV";
   
 class Arectangle
 {
@@ -37,19 +78,9 @@ public:
 class HSV_capsule
 {
 public:
-  //HSV min max contraints
-  int lowH = 70;
-  int highH = 96;
-  
-  int lowS = 56;
-  int highS = 255;
-  
-  int lowV =142;
-  int highV = 255;
-  
+  //HSV min max contraints  
   Scalar hsv_min;
   Scalar hsv_max;
- 
 };
 
 VideoCapture capture;
@@ -57,7 +88,7 @@ VideoCapture capture;
 void findBoundingBox(Image_capsule images,vector< vector<Point> > contours);
 void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
 void findSquares(Image_capsule images,vector< vector<Point> > contours);
-void init(Image_capsule images,HSV_capsule *HSVs,Settings settings);
+void init(Image_capsule images,HSV_capsule *HSVs,Settings &settings);
 void findConvexHull(Image_capsule images,vector< vector<Point> > &contours,vector<vector<Point> > &hull);
 // helper function:
 // finds a cosine of angle between vectors
@@ -80,9 +111,53 @@ static void show_help( void )
   printf("  -c  Set the camera index to use (starts at zero)\n");
 }
 
+Settings Settings::load_config( string filename )
+{
+  ifstream file(filename, fstream::binary);
+  if(file.fail())
+    {
+      printf("Config file not found: %s\nUsing default config...\n", filename.c_str());
+      return Settings(def_cam_index, def_lowH, def_highH, def_lowS, def_highS, def_lowV, def_highV);
+    }
+  
+  Json::Value root;
+  file >> root;
+  file.close();
+  
+  int cam_index = root.get(cam_index_key, def_cam_index).asInt();
+  int lowH = root.get(lowH_key, def_lowH).asInt();
+  int highH = root.get(highH_key, def_highH).asInt();
+  int lowS = root.get(lowS_key, def_lowS).asInt();
+  int highS = root.get(highS_key, def_highS).asInt();
+  int lowV = root.get(lowV_key, def_lowV).asInt();
+  int highV = root.get(highV_key, def_highV).asInt();
+
+  return Settings(cam_index, lowH, highH, lowS, highS, lowV, highV);
+}
+
+void Settings::save_config( Settings &settings, string filename )
+{
+  Json::Value root;
+  
+  root[cam_index_key] = settings.camera_index;
+
+  root[lowH_key] = settings.lowH;
+  root[highH_key] = settings.highH;
+
+  root[lowS_key] = settings.lowS;
+  root[highS_key] = settings.highS;
+
+  root[lowV_key] = settings.lowV;
+  root[highV_key] = settings.highV;
+
+  ofstream file(filename, fstream::binary | fstream::trunc);
+  file << root;
+  file.close();
+}
+
 int main(int argc, char** argv )
 {
-  Settings settings;
+  Settings settings = Settings::load_config("config.json");
   Image_capsule images;
   HSV_capsule HSVs;
   
@@ -129,8 +204,8 @@ int main(int argc, char** argv )
 	  return -1;
 	}
       //make sure the scalars are updated with the new HSV values
-      HSVs.hsv_min = Scalar(HSVs.lowH,HSVs.lowS,HSVs.lowV);
-      HSVs.hsv_max = Scalar(HSVs.highH,HSVs.highS,HSVs.highV);
+      HSVs.hsv_min = Scalar(settings.lowH,settings.lowS,settings.lowV);
+      HSVs.hsv_max = Scalar(settings.highH,settings.highS,settings.highV);
       //filter to HSV and then the color picker filter
       cvtColor(images.frame,images.hsv_image,CV_BGR2HSV);
       inRange(images.hsv_image,HSVs.hsv_min,HSVs.hsv_max,images.threshHold_image);
@@ -158,10 +233,13 @@ int main(int argc, char** argv )
       //check if ESC is pressed to exit the program;
       if((cvWaitKey(10) & 255) == 27) break;
     }
+
+  printf("Saving settings into config.json...\n");
+  Settings::save_config(settings,"config.json");
   return 0;
 }
 
-void init(Image_capsule images,HSV_capsule *HSVs,Settings settings)
+void init(Image_capsule images,HSV_capsule *HSVs,Settings &settings)
 {
   
   //image properties
@@ -200,17 +278,17 @@ void init(Image_capsule images,HSV_capsule *HSVs,Settings settings)
   images.contour_image = Mat(size,CV_8UC1);
   images.hull_image = Mat(size,CV_8UC1);
   //make trackbars to control the HSV min max values
-  createTrackbar("lowH","Control",&HSVs->lowH,255);
-  createTrackbar("lowS","Control",&HSVs->lowS,255);
-  createTrackbar("lowV","Control",&HSVs->lowV,255);
+  createTrackbar("lowH","Control",&settings.lowH,255);
+  createTrackbar("lowS","Control",&settings.lowS,255);
+  createTrackbar("lowV","Control",&settings.lowV,255);
 
-  createTrackbar("highH","Control",&HSVs->highH,255);
-  createTrackbar("highS","Control",&HSVs->highS,255);
-  createTrackbar("highV","Control",&HSVs->highV,255);
+  createTrackbar("highH","Control",&settings.highH,255);
+  createTrackbar("highS","Control",&settings.highS,255);
+  createTrackbar("highV","Control",&settings.highV,255);
   
   //convert our min max HSV values to scalar
-  HSVs->hsv_min = Scalar(HSVs->lowH,HSVs->lowS,HSVs->lowV);
-  HSVs->hsv_max = Scalar(HSVs->highH,HSVs->highS,HSVs->highV);
+  HSVs->hsv_min = Scalar(settings.lowH,settings.lowS,settings.lowV);
+  HSVs->hsv_max = Scalar(settings.highH,settings.highS,settings.highV);
  
 }
 void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <Vec4i> hierarchy)
