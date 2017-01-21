@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 
   Image_capsule images;
   HSV_capsule HSVs;
-  init(images, &HSVs, settings);
+  init(images, HSVs, settings);
 
   //main loop
   while (settings.running)
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
   return 0;
 }
 
-void init(Image_capsule images, HSV_capsule *HSVs, Settings &settings)
+void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
 {
 
   //image properties
@@ -183,11 +183,11 @@ void init(Image_capsule images, HSV_capsule *HSVs, Settings &settings)
   createTrackbar("highV", "Control", &settings.highV, 255);
 
   //convert our min max HSV values to scalar
-  HSVs->hsv_min = Scalar(settings.lowH, settings.lowS, settings.lowV);
-  HSVs->hsv_max = Scalar(settings.highH, settings.highS, settings.highV);
+  HSVs.hsv_min = Scalar(settings.lowH, settings.lowS, settings.lowV);
+  HSVs.hsv_max = Scalar(settings.highH, settings.highS, settings.highV);
 
 }
-void getContours(Image_capsule images, vector< vector<Point> > &contours, vector <Vec4i> hierarchy)
+void getContours(Image_capsule &images, vector< vector<Point> > &contours, vector <Vec4i> &hierarchy)
 {
   //filter until only contours appear
   Canny(images.threshHold_image, images.contour_image, 255, 255, 3);
@@ -195,7 +195,7 @@ void getContours(Image_capsule images, vector< vector<Point> > &contours, vector
   findContours(images.contour_image, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 }
 
-void findConvexHull(Image_capsule images, vector< vector<Point> > &contours, vector<vector<Point> > &hull)
+void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull)
 {
   int minArea = 0;
   for (size_t i = 0; i < contours.size(); i++)
@@ -231,7 +231,7 @@ void findConvexHull(Image_capsule images, vector< vector<Point> > &contours, vec
   }
 
 }
-void findBoundingBox(Image_capsule images, vector< vector<Point> > contours)
+void findBoundingBox(Image_capsule &images, vector< vector<Point> > &contours)
 {
   vector< vector<Point> > contours_poly(contours.size());
   vector<Rect> boundRect(contours.size());
@@ -267,7 +267,7 @@ static double vector_cos(Point pt1, Point pt2, Point pt0)
   return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2));
 }
 
-void findSquares(Image_capsule images, vector< vector<Point> > contours)
+void findSquares(Image_capsule &images, vector< vector<Point> > &contours)
 {
   int pos_thresh = 3;
 
