@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if [ ! -x /usr/bin/astyle ]; then
+    echo "Error: astyle is not installed."
+    exit 1
+fi
+
+astyle --options=astyle_opt.txt src/*.cpp src/*.h
+rm src/*.orig
+
+git add src/*
+
+exit 0

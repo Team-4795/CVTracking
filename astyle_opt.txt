@@ -1,0 +1,17 @@
+-y	# break closing headers (else, catch, etc) from preceding closing brackets
+-xb	# break one line headers (if, while, else, etc) from statements on the same line
+-xj	# remove brackets from one-line conditional statements
+-c	# convert tabs into spaces
+-p	# insert space padding around operators and after commas
+-H	# insert space padding between a header (if, while, else, etc) and the following paren
+-U	# remove extraneous spacing around parenthesis
+-k3	# align pointer symbols with variable names instead of types
+-W3	# align reference symbols with variable names instead of types
+-N	# add indentation to namespace blocks
+-L	# add indentation to labels to match 1 less than the surrounding indent
+-Y	# indent comments beginning in column 1
+-m0	# do not indent headers (if, while, else, etc) composed of multiple lines extra
+-xn	# always put brackets around namespace definitions
+-xc	# always put brackets around class definitions
+-s2	# indent 2 spaces per indent level
+-A1	# use Allman style (broken brackets across additional lines)
