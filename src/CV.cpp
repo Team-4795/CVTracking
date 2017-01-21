@@ -224,12 +224,12 @@ void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <
 void findConvexHull(Image_capsule images,vector< vector<Point> > &contours, vector<vector<Point> > &hull)
 {
   int minArea = 0;
-  for( int i = 0; i < contours.size(); i++ )
+  for( size_t i = 0; i < contours.size(); i++ )
     {
       convexHull( Mat(contours[i]), hull[i], false );
     }
   //find largest area and change it to make it min area
-  for( int i = 0; i< contours.size(); i++ )
+  for( size_t i = 0; i< contours.size(); i++ )
     {   
       int area = contourArea(hull[i]);
       if(area > minArea)
@@ -239,7 +239,7 @@ void findConvexHull(Image_capsule images,vector< vector<Point> > &contours, vect
 	}
     }
   int c = 1;
-  for( int i = 0; i< contours.size(); i++ )
+  for( size_t i = 0; i< contours.size(); i++ )
     {
       int area = contourArea(hull[i]);
       if(area > minArea)
@@ -265,13 +265,13 @@ void findBoundingBox(Image_capsule images,vector< vector<Point> > contours)
   vector<Rect> boundRect(contours.size());
   vector<Rect> filteredRect(boundRect.size());
 
-  for(int i = 0;i < contours.size(); i++)
+  for(size_t i = 0;i < contours.size(); i++)
     {
       approxPolyDP(Mat(contours[i]),contours_poly[i],3,true);
       boundRect[i] = boundingRect( Mat(contours_poly[i]) );
     }
   
-  for( int i = 0; i< contours.size(); i++ )
+  for( size_t i = 0; i < contours.size(); i++ )
     {
       Scalar color = Scalar( 255, 0,0 );
       rectangle(images.frame, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
@@ -333,9 +333,9 @@ void findSquares(Image_capsule images,vector< vector<Point> > contours)
   if(squares.size() > 1)
     {
       int c = 0;
-      for(int i = 0; i < squares.size();i++)
+      for(size_t i = 0; i < squares.size();i++)
 	{
-	  for(int y = i + 1;y < squares.size();y++)
+	  for(size_t y = i + 1;y < squares.size();y++)
 	    {
 	      if(i != y)
 		{
@@ -347,7 +347,7 @@ void findSquares(Image_capsule images,vector< vector<Point> > contours)
 			  finalRects[c].cy = (rects[i].cy + rects[y].cy) /2;
 			  finalRects[c].area = (rects[i].area + rects[y].area) / 2 ;
 			  printf("Square# %d, Center: X: %d Y: %d, Area: %d\n"
-				 ,i,(int) finalRects[i].cx,(int) finalRects[i].cy,(int) finalRects[i].area);
+				 ,(int) i,(int) finalRects[i].cx,(int) finalRects[i].cy, (int) finalRects[i].area);
 			  c++;
 			}
 		    }
