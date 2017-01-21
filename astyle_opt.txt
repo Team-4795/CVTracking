@@ -11,7 +11,5 @@
 -L	# add indentation to labels to match 1 less than the surrounding indent
 -Y	# indent comments beginning in column 1
 -m0	# do not indent headers (if, while, else, etc) composed of multiple lines extra
--xn	# always put brackets around namespace definitions
--xc	# always put brackets around class definitions
 -s2	# indent 2 spaces per indent level
 -A1	# use Allman style (broken brackets across additional lines)
