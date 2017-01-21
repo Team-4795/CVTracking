@@ -1,7 +1,8 @@
 #include <stdio.h>
-#include <iostream>
 #include <math.h>
 #include <unistd.h>
+#include <signal.h>
+#include <iostream>
 #include <fstream>
 #include <opencv2/opencv.hpp>
 #include <json/json.h>
@@ -38,6 +39,11 @@ public:
   int lowS,highS;
   int lowV,highV;
 
+  Settings( void )
+    : camera_index(def_cam_index),
+      lowH(def_lowH), highH(def_highH),
+      lowS(def_lowS), highS(def_highS),
+      lowV(def_lowV), highV(def_highV) {}
   Settings( int camera_index,
 	    int lowH, int highH,
 	    int lowS, int highS,
@@ -46,8 +52,8 @@ public:
       lowH(lowH), highH(highH),
       lowS(lowS), highS(highS),
       lowV(lowV), highV(highV) {}
-  static Settings load_config( string filename );
-  static void save_config( Settings &settings, string filename );
+  void load_config( string filename );
+  void save_config( string filename );
 };
 
 const string Settings::cam_index_key = "camera-index";
@@ -111,56 +117,92 @@ static void show_help( void )
   printf("  -c  Set the camera index to use (starts at zero)\n");
 }
 
-Settings Settings::load_config( string filename )
+void Settings::load_config( string filename )
 {
   ifstream file(filename, fstream::binary);
   if(file.fail())
     {
       printf("Config file not found: %s\nUsing default config...\n", filename.c_str());
-      return Settings(def_cam_index, def_lowH, def_highH, def_lowS, def_highS, def_lowV, def_highV);
+      camera_index = def_cam_index;
+      lowH = def_lowH;
+      highH = def_highH;
+      lowS = def_lowS;
+      highS = def_highS;
+      lowV = def_lowV;
+      highV = def_highV;
+      return;
     }
   
   Json::Value root;
   file >> root;
   file.close();
   
-  int cam_index = root.get(cam_index_key, def_cam_index).asInt();
-  int lowH = root.get(lowH_key, def_lowH).asInt();
-  int highH = root.get(highH_key, def_highH).asInt();
-  int lowS = root.get(lowS_key, def_lowS).asInt();
-  int highS = root.get(highS_key, def_highS).asInt();
-  int lowV = root.get(lowV_key, def_lowV).asInt();
-  int highV = root.get(highV_key, def_highV).asInt();
-
-  return Settings(cam_index, lowH, highH, lowS, highS, lowV, highV);
+  camera_index = root.get(cam_index_key, def_cam_index).asInt();
+  lowH = root.get(lowH_key, def_lowH).asInt();
+  highH = root.get(highH_key, def_highH).asInt();
+  lowS = root.get(lowS_key, def_lowS).asInt();
+  highS = root.get(highS_key, def_highS).asInt();
+  lowV = root.get(lowV_key, def_lowV).asInt();
+  highV = root.get(highV_key, def_highV).asInt();
 }
 
-void Settings::save_config( Settings &settings, string filename )
+void Settings::save_config( string filename )
 {
   Json::Value root;
   
-  root[cam_index_key] = settings.camera_index;
+  root[cam_index_key] = camera_index;
 
-  root[lowH_key] = settings.lowH;
-  root[highH_key] = settings.highH;
+  root[lowH_key] = lowH;
+  root[highH_key] = highH;
 
-  root[lowS_key] = settings.lowS;
-  root[highS_key] = settings.highS;
+  root[lowS_key] = lowS;
+  root[highS_key] = highS;
 
-  root[lowV_key] = settings.lowV;
-  root[highV_key] = settings.highV;
+  root[lowV_key] = lowV;
+  root[highV_key] = highV;
 
   ofstream file(filename, fstream::binary | fstream::trunc);
   file << root;
   file.close();
 }
 
+Settings settings;
+
+void handle_signal( int signal )
+{
+  printf("Saving settings into config.json...\n");
+  settings.save_config("config.json");
+  switch(signal)
+    {
+    case SIGINT:
+    case SIGPIPE:
+    case SIGTERM:
+      exit(0);
+    case SIGSEGV:
+    default:
+      exit(1);
+    }
+}
+
 int main(int argc, char** argv )
 {
-  Settings settings = Settings::load_config("config.json");
-  Image_capsule images;
-  HSV_capsule HSVs;
+  settings.load_config("config.json");
   
+  // setup signal handling to save settings always upon exit
+  struct sigaction action;
+  action.sa_flags = SA_RESTART;
+  action.sa_handler = SIG_IGN;
+  sigaction(SIGHUP, &action, NULL);
+  sigaction(SIGQUIT, &action, NULL);
+  sigaction(SIGUSR1, &action, NULL);
+  sigaction(SIGUSR2, &action, NULL);
+  action.sa_handler = handle_signal;
+  sigaction(SIGINT, &action, NULL);
+  sigaction(SIGSEGV, &action, NULL);
+  sigaction(SIGPIPE, &action, NULL);
+  sigaction(SIGTERM, &action, NULL);
+
+  // parse command line arguments
   int arg;
   while((arg = getopt(argc,argv,"udhc:")) != -1)
     switch(arg)
@@ -190,8 +232,11 @@ int main(int argc, char** argv )
       show_help();
       return 1;
     }
-  
+
+  Image_capsule images;
+  HSV_capsule HSVs;
   init(images,&HSVs,settings);
+  
   //main loop
   while(settings.running)
     {
@@ -235,7 +280,7 @@ int main(int argc, char** argv )
     }
 
   printf("Saving settings into config.json...\n");
-  Settings::save_config(settings,"config.json");
+  settings.save_config("config.json");
   return 0;
 }
 
