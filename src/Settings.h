@@ -26,27 +26,27 @@ public:
   bool running = true;
   bool GUI = false;
   bool debug = false;
-  
-  int camera_index;
-  int lowH,highH;
-  int lowS,highS;
-  int lowV,highV;
 
-  Settings( void )
+  int camera_index;
+  int lowH, highH;
+  int lowS, highS;
+  int lowV, highV;
+
+  Settings(void)
     : camera_index(def_cam_index),
       lowH(def_lowH), highH(def_highH),
       lowS(def_lowS), highS(def_highS),
       lowV(def_lowV), highV(def_highV) {}
-  Settings( int camera_index,
-	    int lowH, int highH,
-	    int lowS, int highS,
-	    int lowV, int highV )
+  Settings(int camera_index,
+           int lowH, int highH,
+           int lowS, int highS,
+           int lowV, int highV)
     : camera_index(camera_index),
       lowH(lowH), highH(highH),
       lowS(lowS), highS(highS),
       lowV(lowV), highV(highV) {}
-  void load_config( string filename );
-  void save_config( string filename );
+  void load_config(string filename);
+  void save_config(string filename);
 };
 
 #endif

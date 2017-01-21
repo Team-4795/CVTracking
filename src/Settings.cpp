@@ -18,26 +18,26 @@ const string Settings::highS_key = "highS";
 const string Settings::lowV_key = "lowV";
 const string Settings::highV_key = "highV";
 
-void Settings::load_config( string filename )
+void Settings::load_config(string filename)
 {
   ifstream file(filename, fstream::binary);
-  if(file.fail())
-    {
-      printf("Config file not found: %s\nUsing default config...\n", filename.c_str());
-      camera_index = def_cam_index;
-      lowH = def_lowH;
-      highH = def_highH;
-      lowS = def_lowS;
-      highS = def_highS;
-      lowV = def_lowV;
-      highV = def_highV;
-      return;
-    }
-  
+  if (file.fail())
+  {
+    printf("Config file not found: %s\nUsing default config...\n", filename.c_str());
+    camera_index = def_cam_index;
+    lowH = def_lowH;
+    highH = def_highH;
+    lowS = def_lowS;
+    highS = def_highS;
+    lowV = def_lowV;
+    highV = def_highV;
+    return;
+  }
+
   Json::Value root;
   file >> root;
   file.close();
-  
+
   camera_index = root.get(cam_index_key, def_cam_index).asInt();
   lowH = root.get(lowH_key, def_lowH).asInt();
   highH = root.get(highH_key, def_highH).asInt();
@@ -47,10 +47,10 @@ void Settings::load_config( string filename )
   highV = root.get(highV_key, def_highV).asInt();
 }
 
-void Settings::save_config( string filename )
+void Settings::save_config(string filename)
 {
   Json::Value root;
-  
+
   root[cam_index_key] = camera_index;
 
   root[lowH_key] = lowH;

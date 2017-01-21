@@ -10,7 +10,7 @@ using namespace std;
 class Arectangle
 {
 public:
-  int cx,cy,area;
+  int cx, cy, area;
 };
 
 class Image_capsule
@@ -27,16 +27,16 @@ public:
 class HSV_capsule
 {
 public:
-  //HSV min max contraints  
+  //HSV min max contraints
   Scalar hsv_min;
   Scalar hsv_max;
 };
 
 void show_help(void);
-void findBoundingBox(Image_capsule images,vector< vector<Point> > contours);
-void getContours(Image_capsule images,vector< vector<Point> > &contours,vector <Vec4i> hierarchy);
-void findSquares(Image_capsule images,vector< vector<Point> > contours);
-void init(Image_capsule images,HSV_capsule *HSVs,Settings &settings);
-void findConvexHull(Image_capsule images,vector< vector<Point> > &contours,vector<vector<Point> > &hull);
+void findBoundingBox(Image_capsule images, vector< vector<Point> > contours);
+void getContours(Image_capsule images, vector< vector<Point> > &contours, vector <Vec4i> hierarchy);
+void findSquares(Image_capsule images, vector< vector<Point> > contours);
+void init(Image_capsule images, HSV_capsule *HSVs, Settings &settings);
+void findConvexHull(Image_capsule images, vector< vector<Point> > &contours, vector<vector<Point> > &hull);
 
 #endif
