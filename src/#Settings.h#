@@ -2,8 +2,6 @@
 #define SETTINGS_H_
 
 #include <string>
-#include <fstream>
-#include <json/json.h>
 
 using namespace std;
 
