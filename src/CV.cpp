@@ -222,10 +222,11 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
       int u = int(M.m10 / M.m00);
       int v = int(M.m01 / M.m00);
 
-      double cx = 1280 / 2;
-      double f = 1078.467509;
-      double angle = atan((u - cx) / f);
-      printf("target#%d: Area: %d X:%d Y:%d Angle:%d \n", c, area, u, v, (int) angle);
+      double cx = 640;
+      double f = 1078;
+      double angle = atan( (u - cx) / f);
+      angle = angle * 180 / 3.141592653589793238462643383279;
+      printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", c, area, u, v,angle);
       c++;
     }
   }
