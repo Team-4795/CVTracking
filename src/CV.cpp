@@ -222,7 +222,9 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
       int u = int(M.m10 / M.m00);
       int v = int(M.m01 / M.m00);
 
-      double cx = 640;
+      circle(images.frame,Point(u,v),2,color,4);
+      
+      double cx = 360;
       double f = 1078;
       double angle = atan( (u - cx) / f);
       angle = angle * 180 / 3.141592653589793238462643383279;
