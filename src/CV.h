@@ -3,10 +3,12 @@
 
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include <zmq.hpp>
 #include "Settings.h"
 
 using namespace cv;
 using namespace std;
+using namespace zmq;
 
 class Arectangle
 {
@@ -32,6 +34,7 @@ public:
   Scalar hsv_min;
   Scalar hsv_max;
 };
+
 
 void show_help(void);
 void findBoundingBox(Image_capsule &images, vector< vector<Point> > &contours);

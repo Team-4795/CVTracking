@@ -4,9 +4,6 @@
 #include <signal.h>
 #include "CV.h"
 
-using namespace cv;
-using namespace std;
-
 Settings settings;
 
 static void handle_signal(int signal)
@@ -35,6 +32,7 @@ void show_help(void)
 }
 
 VideoCapture capture;
+
 
 int main(int argc, char **argv)
 {
@@ -87,6 +85,13 @@ int main(int argc, char **argv)
 
   Image_capsule images;
   HSV_capsule HSVs;
+  double angle = 10.4;
+  
+  context_t context(1);
+  socket_t socket(context,ZMQ_PUB);
+  
+  socket.bind ("tcp://*:5555");
+  
   init(images, HSVs, settings);
 
   //main loop
@@ -125,6 +130,10 @@ int main(int argc, char **argv)
         imshow("Thresh", images.threshHold_image);
     }
 
+    message_t message(50);
+    sprintf((char *)message.data(),"%f",angle);
+    socket.send(message);
+    
     //check if ESC is pressed to exit the program;
     if ((cvWaitKey(10) & 255) == 27)
       break;
@@ -137,7 +146,6 @@ int main(int argc, char **argv)
 
 void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
 {
-
   //image properties
   int height, width;
 
@@ -197,7 +205,7 @@ void getContours(Image_capsule &images, vector< vector<Point> > &contours, vecto
 
 void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull)
 {
-  int minArea = 0;
+  int minArea = 20;
   for (size_t i = 0; i < contours.size(); i++)
     convexHull(Mat(contours[i]), hull[i], false);
   //find largest area and change it to make it min area
