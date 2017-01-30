@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 
   Image_capsule images;
   HSV_capsule HSVs;
-  double angle = 10.4;
+  double angle;
   
   context_t context(1);
   socket_t socket(context,ZMQ_PUB);
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
     getContours(images, contours, hierarchy);
 
     vector< vector<Point> > hull(contours.size());
-    findConvexHull(images, contours, hull);
+    findConvexHull(images, contours, hull,angle);
     //findBoundingBox(images,contours);
     //findSquares(images,hull);
 
@@ -203,7 +203,8 @@ void getContours(Image_capsule &images, vector< vector<Point> > &contours, vecto
   findContours(images.contour_image, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 }
 
-void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull)
+void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull
+		    ,double &angle)
 {
   int minArea = 20;
   for (size_t i = 0; i < contours.size(); i++)
@@ -234,7 +235,7 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
       
       double cx = 360;
       double f = 1078;
-      double angle = atan( (u - cx) / f);
+      angle = atan( (u - cx) / f);
       angle = angle * 180 / 3.141592653589793238462643383279;
       printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", c, area, u, v,angle);
       c++;
