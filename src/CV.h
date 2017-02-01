@@ -1,6 +1,8 @@
 #ifndef CV_H_
 #define CV_H_
 
+#define pi 3.141592653589793238462643383279;
+
 #include <vector>
 #include <opencv2/opencv.hpp>
 #include <zmq.hpp>
