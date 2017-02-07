@@ -2,6 +2,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <signal.h>
+#include "zhelpers.hpp"
 #include "CV.h"
 
 Settings settings;
@@ -90,7 +91,7 @@ int main(int argc, char **argv)
   context_t context(1);
   socket_t socket(context,ZMQ_PUB);
   
-  socket.bind ("tcp://*:5555");
+  socket.bind ("tcp://*:5805");
   
   init(images, HSVs, settings);
 
@@ -129,10 +130,12 @@ int main(int argc, char **argv)
       if (settings.debug)
         imshow("Thresh", images.threshHold_image);
     }
+    char cmsg[32];
+    snprintf(cmsg,sizeof(cmsg),"%.4f",angle);
+    s_sendmore (socket, "B");
+    s_send (socket,string(cmsg));
+    sleep (0.1);
 
-    message_t message(50);
-    sprintf((char *)message.data(),"%f",angle);
-    socket.send(message);
     
     //check if ESC is pressed to exit the program;
     if ((cvWaitKey(10) & 255) == 27)
