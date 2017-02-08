@@ -34,7 +34,6 @@ void show_help(void)
 
 VideoCapture capture;
 
-
 int main(int argc, char **argv)
 {
   settings.load_config("config.json");
@@ -87,12 +86,12 @@ int main(int argc, char **argv)
   Image_capsule images;
   HSV_capsule HSVs;
   double angle;
-  
+
   context_t context(1);
-  socket_t socket(context,ZMQ_PUB);
-  
-  socket.bind ("tcp://*:5805");
-  
+  socket_t socket(context, ZMQ_PUB);
+
+  socket.bind("tcp://*:5808");
+
   init(images, HSVs, settings);
 
   //main loop
@@ -119,7 +118,7 @@ int main(int argc, char **argv)
     getContours(images, contours, hierarchy);
 
     vector< vector<Point> > hull(contours.size());
-    findConvexHull(images, contours, hull,angle);
+    findConvexHull(images, contours, hull, angle);
     //findBoundingBox(images,contours);
     //findSquares(images,hull);
 
@@ -131,12 +130,10 @@ int main(int argc, char **argv)
         imshow("Thresh", images.threshHold_image);
     }
     char cmsg[32];
-    snprintf(cmsg,sizeof(cmsg),"%.4f",angle);
-    s_sendmore (socket, "B");
-    s_send (socket,string(cmsg));
-    sleep (0.1);
+    snprintf(cmsg, sizeof(cmsg), "%.4f", angle);
+    s_send(socket, string(cmsg));
+    sleep(0.1);
 
-    
     //check if ESC is pressed to exit the program;
     if ((cvWaitKey(10) & 255) == 27)
       break;
@@ -207,7 +204,7 @@ void getContours(Image_capsule &images, vector< vector<Point> > &contours, vecto
 }
 
 void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull
-		    ,double &angle)
+                    , double &angle)
 {
   int minArea = 20;
   for (size_t i = 0; i < contours.size(); i++)
@@ -219,6 +216,7 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
     if (area > minArea)
     {
       minArea = area;
+      // XXX probably should be outside of this loop
       minArea = minArea / 3;
     }
   }
@@ -234,13 +232,13 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
       int u = int(M.m10 / M.m00);
       int v = int(M.m01 / M.m00);
 
-      circle(images.frame,Point(u,v),2,color,4);
-      
+      circle(images.frame, Point(u, v), 2, color, 4);
+
       double cx = 360;
       double f = 1078;
-      angle = atan( (u - cx) / f);
-      angle = angle * 180 / pi;
-      printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", c, area, u, v,angle);
+      angle = atan((u - cx) / f);
+      angle = angle * 180 / M_PI;
+      printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", c, area, u, v, angle);
       c++;
     }
   }

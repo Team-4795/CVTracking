@@ -1,8 +1,6 @@
 #ifndef CV_H_
 #define CV_H_
 
-#define pi 3.141592653589793238462643383279;
-
 #include <vector>
 #include <opencv2/opencv.hpp>
 #include <zmq.hpp>
@@ -37,12 +35,11 @@ public:
   Scalar hsv_max;
 };
 
-
 void show_help(void);
 void findBoundingBox(Image_capsule &images, vector< vector<Point> > &contours);
 void getContours(Image_capsule &images, vector< vector<Point> > &contours, vector <Vec4i> &hierarchy);
 void findSquares(Image_capsule &images, vector< vector<Point> > &contours);
 void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings);
-void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull,double &angle);
+void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull, double &angle);
 
 #endif
