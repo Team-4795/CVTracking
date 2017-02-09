@@ -206,7 +206,7 @@ void getContours(Image_capsule &images, vector< vector<Point> > &contours, vecto
 int calculate_threshold_area(size_t contour_count, vector<vector<Point>> &hull)
 {
   int minArea = 20;
-  for (size_t i = 0; i < contours.size(); i++)
+  for (size_t i = 0; i < contour_count; i++)
   {
     int area = contourArea(hull[i]);
     if (area < minArea)
