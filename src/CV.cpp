@@ -217,6 +217,11 @@ int calculate_threshold_area(size_t contour_count, vector<vector<Point>> &hull)
   return minArea / 3;
 }
 
+int radian_to_degrees(double radian)
+{
+  return radian * 180 / M_PI;
+}
+
 void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull
                     , double &angle)
 {
