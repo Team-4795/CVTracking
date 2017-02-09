@@ -203,28 +203,31 @@ void getContours(Image_capsule &images, vector< vector<Point> > &contours, vecto
   findContours(images.contour_image, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 }
 
-void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull
-                    , double &angle)
+int calculate_threshold_area(size_t contour_count, vector<vector<Point>> &hull)
 {
   int minArea = 20;
   for (size_t i = 0; i < contours.size(); i++)
-    convexHull(Mat(contours[i]), hull[i], false);
-  //find largest area and change it to make it min area
-  for (size_t i = 0; i < contours.size(); i++)
   {
     int area = contourArea(hull[i]);
-    if (area > minArea)
+    if (area < minArea)
     {
       minArea = area;
-      // XXX probably should be outside of this loop
-      minArea = minArea / 3;
     }
   }
-  int c = 1;
+  return minArea / 3;
+}
+
+void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull
+                    , double &angle)
+{
+  for (size_t i = 0; i < contours.size(); i++)
+    convexHull(Mat(contours[i]), hull[i], false);
+  int count = 1;
+  int threshold_area = calculate_threshold_area(contours.size(), hull);
   for (size_t i = 0; i < contours.size(); i++)
   {
     int area = contourArea(hull[i]);
-    if (area > minArea)
+    if (area > threshold_area)
     {
       Scalar color = Scalar(255, 0, 0);
       drawContours(images.frame, hull, i, color, 1, 8, vector<Vec4i>(), 0, Point());
@@ -239,7 +242,7 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
       angle = atan((u - cx) / f);
       angle = angle * 180 / M_PI;
       printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", c, area, u, v, angle);
-      c++;
+      count++;
     }
   }
 
