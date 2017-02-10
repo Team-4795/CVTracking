@@ -1,9 +1,9 @@
 {
 	"camera-index" : 1,
-	"highH" : 96,
+	"highH" : 56,
 	"highS" : 255,
-	"highV" : 255,
-	"lowH" : 72,
-	"lowS" : 176,
-	"lowV" : 44
+	"highV" : 58,
+	"lowH" : 70,
+	"lowS" : 89,
+	"lowV" : 255
 }
