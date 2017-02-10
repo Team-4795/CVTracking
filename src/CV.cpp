@@ -92,8 +92,8 @@ int main(int argc, char **argv)
 
   Image_capsule images;
   HSV_capsule HSVs;
-  double angle;
-
+  contourData contour_data;
+  
   context_t context(1);
   socket_t socket(context, ZMQ_PUB);
 
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
     getContours(images, contours, hierarchy);
 
     vector< vector<Point> > hull(contours.size());
-    findConvexHull(images, contours, hull, angle);
+    findConvexHull(images, contours, hull,contour_data);
     //findBoundingBox(images,contours);
     //findSquares(images,hull);
 
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
     if (contours.size() > 0)
     {
       char cmsg[32];
-      snprintf(cmsg, sizeof(cmsg), "%.4f", angle);
+      snprintf(cmsg, sizeof(cmsg), "%.4f", contour_data.Angle);
       s_send(socket, string(cmsg));
     }
     sleep(0.1);
@@ -222,7 +222,7 @@ void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
   createTrackbar("highH", "Control", &settings.highH, 255);
   createTrackbar("highS", "Control", &settings.highS, 255);
   createTrackbar("highV", "Control", &settings.highV, 255);
-
+  
   //convert our min max HSV values to scalar
   HSVs.hsv_min = Scalar(settings.lowH, settings.lowS, settings.lowV);
   HSVs.hsv_max = Scalar(settings.highH, settings.highS, settings.highV);
@@ -232,13 +232,13 @@ void getContours(Image_capsule &images, vector< vector<Point> > &contours, vecto
 {
   //filter until only contours appear
   Canny(images.threshHold_image, images.contour_image, 255, 255, 3);
-  morphologyEx(images.contour_image, images.contour_image, MORPH_CLOSE, Mat(), Point(-1, -1));
+  morphologyEx(images.contour_image, images.contour_image, MORPH_CLOSE, Mat(), Point(-1, -1),1);
   findContours(images.contour_image, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 }
 
 int calculate_threshold_area(size_t contour_count, vector<vector<Point>> &hull)
 {
-  int maxArea = 40;
+  int maxArea = 500;
   for (size_t i = 0; i < contour_count; i++)
   {
     int area = contourArea(hull[i]);
@@ -254,12 +254,13 @@ double radian_to_degrees(double radian)
 }
 
 void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull
-                    , double &angle)
+                    , contourData data)
 {
   for (size_t i = 0; i < contours.size(); i++)
     convexHull(Mat(contours[i]), hull[i], false);
   int count = 1;
-  int threshold_area = calculate_threshold_area(contours.size(), hull);
+  int threshold_area = 200;
+  //printf("%d\n",threshold_area);
   for (size_t i = 0; i < contours.size(); i++)
   {
     int area = contourArea(hull[i]);
@@ -275,8 +276,14 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
 
       double cx = 360;
       double f = 1078;
-      angle = atan((u - cx) / f);
-      printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", count, area, u, v, radian_to_degrees(angle));
+      data.Angle = atan((u - cx) / f);
+      data.X = u;
+      data.Y = v;
+      data.Area = area;
+      char cmsg[50];
+      snprintf(cmsg, sizeof(cmsg), "%.4f", radian_to_degrees(data.Angle));
+      //printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", count, area, u, v, radian_to_degrees(angle));
+      putText(images.frame,cmsg,Point(u,v),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
       count++;
     }
   }

@@ -38,6 +38,7 @@ public:
   int lowS, highS;
   int lowV, highV;
 
+  
   string static_path;
   Settings(void)
     : camera_index(def_cam_index),

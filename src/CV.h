@@ -35,11 +35,19 @@ public:
   Scalar hsv_max;
 };
 
+class contourData
+{
+public:
+  int Area;
+  int X;
+  int Y;
+  double Angle;
+};
 void show_help(void);
 void findBoundingBox(Image_capsule &images, vector< vector<Point> > &contours);
 void getContours(Image_capsule &images, vector< vector<Point> > &contours, vector <Vec4i> &hierarchy);
 void findSquares(Image_capsule &images, vector< vector<Point> > &contours);
 void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings);
-void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull, double &angle);
+void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull, contourData data);
 
 #endif
