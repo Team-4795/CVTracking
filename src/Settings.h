@@ -30,7 +30,8 @@ public:
   bool running = true;
   bool GUI = false;
   bool debug = false;
-
+  bool static_image = false;
+  
   int camera_index;
   int lowH, highH;
   int lowS, highS;

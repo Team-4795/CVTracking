@@ -114,7 +114,6 @@ int main(int argc, char **argv)
 	return -1;
       }
     }
-    
     else
     {
       images.frame = imread("static_image.jpg",CV_LOAD_IMAGE_COLOR);
