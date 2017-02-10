@@ -214,14 +214,12 @@ int calculate_threshold_area(size_t contour_count, vector<vector<Point>> &hull)
   {
     int area = contourArea(hull[i]);
     if (area < minArea)
-    {
       minArea = area;
-    }
   }
   return minArea / 3;
 }
 
-int radian_to_degrees(double radian)
+double radian_to_degrees(double radian)
 {
   return radian * 180 / M_PI;
 }
