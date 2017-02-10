@@ -129,9 +129,13 @@ int main(int argc, char **argv)
       if (settings.debug)
         imshow("Thresh", images.threshHold_image);
     }
-    char cmsg[32];
-    snprintf(cmsg, sizeof(cmsg), "%.4f", angle);
-    s_send(socket, string(cmsg));
+
+    if (contours.size() > 0)
+    {
+      char cmsg[32];
+      snprintf(cmsg, sizeof(cmsg), "%.4f", angle);
+      s_send(socket, string(cmsg));
+    }
     sleep(0.1);
 
     //check if ESC is pressed to exit the program;
