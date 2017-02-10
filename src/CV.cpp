@@ -209,14 +209,14 @@ void getContours(Image_capsule &images, vector< vector<Point> > &contours, vecto
 
 int calculate_threshold_area(size_t contour_count, vector<vector<Point>> &hull)
 {
-  int minArea = 20;
+  int maxArea = 20;
   for (size_t i = 0; i < contour_count; i++)
   {
     int area = contourArea(hull[i]);
-    if (area < minArea)
-      minArea = area;
+    if (area > maxArea)
+      maxArea = area;
   }
-  return minArea / 3;
+  return maxArea / 3;
 }
 
 double radian_to_degrees(double radian)
