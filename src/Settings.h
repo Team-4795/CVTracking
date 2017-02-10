@@ -31,6 +31,7 @@ public:
   bool GUI = false;
   bool debug = false;
   bool static_image = false;
+  bool streamed_image = false;
   
   int camera_index;
   int lowH, highH;

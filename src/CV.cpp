@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
   // parse command line arguments
   int arg;
-  while ((arg = getopt(argc, argv, "udhs:c:")) != -1)
+  while ((arg = getopt(argc, argv, "udhis:c:")) != -1)
     switch (arg)
     {
     case 'u':
@@ -70,6 +70,9 @@ int main(int argc, char **argv)
     case 's':
       settings.static_image = true;
       settings.static_path = optarg;
+      break;
+    case 'i':
+      settings.streamed_image = true;
       break;
     case 'h':
     default:
@@ -114,10 +117,15 @@ int main(int argc, char **argv)
 	getchar();
 	return -1;
       }
+      
     }
-    else
+    else if(settings.static_image == true)
     {
       images.frame = imread("static_image.jpg",CV_LOAD_IMAGE_COLOR);
+    }
+    else if(settings.streamed_image == true)
+    {
+      capture.open("axis-camera.local/mjpg/video.mjpg");
     }
     //filter to HSV and then the color picker filter
     cvtColor(images.frame, images.hsv_image, CV_BGR2HSV);
@@ -164,8 +172,19 @@ void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
   int height, width;
 
   Size size;
-
-  capture = VideoCapture(settings.camera_index);
+  if(settings.streamed_image == true)
+  {
+    if(!capture.open("http://axis-camera.local/mjpg/video.mjpg"))
+    {
+      printf("Cant open the axis-cam!\n");
+    }
+  }
+  else
+  {
+    capture = VideoCapture(settings.camera_index);
+  }
+  
+  
   if (!capture.isOpened())
   {
     fprintf(stderr, "ERROR: capture is NULL \n");
@@ -219,7 +238,7 @@ void getContours(Image_capsule &images, vector< vector<Point> > &contours, vecto
 
 int calculate_threshold_area(size_t contour_count, vector<vector<Point>> &hull)
 {
-  int maxArea = 20;
+  int maxArea = 40;
   for (size_t i = 0; i < contour_count; i++)
   {
     int area = contourArea(hull[i]);
