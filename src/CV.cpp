@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
   // parse command line arguments
   int arg;
-  while ((arg = getopt(argc, argv, "udhsc:")) != -1)
+  while ((arg = getopt(argc, argv, "udhs:c:")) != -1)
     switch (arg)
     {
     case 'u':
@@ -69,6 +69,7 @@ int main(int argc, char **argv)
       break;
     case 's':
       settings.static_image = true;
+      settings.static_path = optarg;
       break;
     case 'h':
     default:
@@ -114,7 +115,6 @@ int main(int argc, char **argv)
 	return -1;
       }
     }
-    
     else
     {
       images.frame = imread("static_image.jpg",CV_LOAD_IMAGE_COLOR);
