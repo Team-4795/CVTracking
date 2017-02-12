@@ -47,7 +47,7 @@ void show_help(void);
 void findBoundingBox(Image_capsule &images, vector< vector<Point> > &contours);
 void getContours(Image_capsule &images, vector< vector<Point> > &contours, vector <Vec4i> &hierarchy);
 void findSquares(Image_capsule &images, vector< vector<Point> > &contours);
-void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings);
+void init(Image_capsule &images, Settings &settings);
 void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull, contourData data);
 
 #endif

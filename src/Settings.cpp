@@ -7,11 +7,13 @@ const unordered_map<string,Settings::FieldSpec> Settings::defaults = {
   {"running", {true,  false}},
   {"GUI",     {false, false}},
   {"debug",   {false, false}},
-  {"static-image",   {false, false}},
-  {"streamed-image", {false, false}},
 
   // saved in config
+  {"mode",  {Settings::Mode::USB, true}},
   {"camera-index", {0, true}},
+  {"static-path", {"static_image.jpg", true}},
+  {"stream-path", {"http://axis-camera.local/mjpg/video.mjpg", true}},
+  
   {"lowH",  {70,  true}},
   {"lowS",  {56,  true}},
   {"lowV",  {142, true}},
@@ -40,7 +42,7 @@ void Settings::load_config(const string &filename)
   ifstream file(filename, fstream::binary);
   if (file.fail())
   {
-    printf("Config file not found: %s\nUsing default config...\n", filename.c_str());
+    fprintf(stderr, "Config file not found: %s\nUsing default config...\n", filename.c_str());
     return;
   }
 
@@ -69,7 +71,7 @@ void Settings::save_config(const string &filename) const
   ofstream file(filename, fstream::binary | fstream::trunc);
   if(file.fail())
   {
-    printf("Failed to open config file for writing: %s\nAborting save...\n", filename.c_str());
+    fprintf(stderr, "Failed to open config file for writing: %s\nAborting save...\n", filename.c_str());
     return;
   }
   

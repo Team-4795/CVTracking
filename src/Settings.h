@@ -17,6 +17,12 @@ class Settings : public Json::Value
   static const unordered_map<string,FieldSpec> defaults;
 public:
   Settings(void);
+
+  enum Mode {
+    USB,
+    STATIC,
+    STREAM
+  };
   
   void load_defaults(void);
   void load_config(const string &filename);

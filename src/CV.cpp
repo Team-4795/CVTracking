@@ -19,17 +19,18 @@ static void handle_signal(int signal)
     exit(0);
   case SIGSEGV:
   default:
-    printf("Termination due to abnormal signal: %d\n", signal);
+    fprintf(stderr, "Termination due to abnormal signal: %d\n", signal);
+  case -1:
     exit(1);
   }
 }
 
 void show_help(void)
 {
-  printf("CVTracking [-udih] [-c <camera index>] [-s <image path>]\n"
+  printf("CVTracking [-hud] [-c <camera index>] [-s <image path>] [-i <stream url>]\n"
+	 "  -h  Show this help menu\n"
 	 "  -u  User mode (camera view only)\n"
 	 "  -d  Debug mode (camera, threshold, control views, settings sliders)\n"
-	 "  -h  Show this help menu\n"
 	 "  -c  Set the camera index to use (starts at zero)\n"
 	 "  -s  Use a static image instead of a connected camera\n"
 	 "  -i  Use an mjpg stream instead of a connected camera\n");
@@ -45,21 +46,25 @@ int main(int argc, char **argv)
   struct sigaction action;
   action.sa_flags = SA_RESTART;
   action.sa_handler = SIG_IGN;
-  sigaction(SIGHUP, &action, NULL);
-  sigaction(SIGQUIT, &action, NULL);
-  sigaction(SIGUSR1, &action, NULL);
-  sigaction(SIGUSR2, &action, NULL);
+  sigaction(SIGHUP, &action, nullptr);
+  sigaction(SIGQUIT, &action, nullptr);
+  sigaction(SIGUSR1, &action, nullptr);
+  sigaction(SIGUSR2, &action, nullptr);
   action.sa_handler = handle_signal;
-  sigaction(SIGINT, &action, NULL);
-  sigaction(SIGSEGV, &action, NULL);
-  sigaction(SIGPIPE, &action, NULL);
-  sigaction(SIGTERM, &action, NULL);
+  sigaction(SIGINT, &action, nullptr);
+  sigaction(SIGSEGV, &action, nullptr);
+  sigaction(SIGPIPE, &action, nullptr);
+  sigaction(SIGTERM, &action, nullptr);
 
   // parse command line arguments
   int arg;
-  while ((arg = getopt(argc, argv, "udhis:c:")) != -1)
+  while ((arg = getopt(argc, argv, "hudc:s:i:")) != -1)
     switch (arg)
     {
+    case 'h':
+    default:
+      show_help();
+      return (optopt == 'h' ? 0 : 1);
     case 'u':
       settings["GUI"] = true;
       break;
@@ -68,19 +73,17 @@ int main(int argc, char **argv)
       settings["debug"] = true;
       break;
     case 'c':
-      settings["camera-index"] = (int) strtol(optarg, NULL, 10);
+      settings["mode"] = Settings::Mode::USB;
+      settings["camera-index"] = (int) strtol(optarg, nullptr, 10);
       break;
     case 's':
-      settings["static-image"] = true;
+      settings["mode"] = Settings::Mode::STATIC;
       settings["static-path"] = optarg;
       break;
     case 'i':
-      settings["streamed-image"] = true;
+      settings["mode"] = Settings::Mode::STREAM;
+      settings["stream-path"] = optarg;
       break;
-    case 'h':
-    default:
-      show_help();
-      return (optopt == 'h' ? 0 : 1);
     }
 
   if (optind != argc)
@@ -102,7 +105,7 @@ int main(int argc, char **argv)
 
   socket.bind("tcp://*:5808");
 
-  init(images, HSVs, settings);
+  init(images, settings);
 
   //main loop
   while (settings["running"].asBool())
@@ -110,38 +113,37 @@ int main(int argc, char **argv)
     //make sure the scalars are updated with the new HSV values
     HSVs.hsv_min = Scalar(settings["lowH"].asInt(), settings["lowS"].asInt(), settings["lowV"].asInt());
     HSVs.hsv_max = Scalar(settings["highH"].asInt(), settings["highS"].asInt(), settings["highV"].asInt());
-    if(!settings["static-image"].asBool())
+    
+    if(settings["mode"].asInt() == Settings::Mode::STATIC)
+    {
+      images.frame = imread(settings["static-path"].asString(), CV_LOAD_IMAGE_COLOR);
+      if(images.frame.data == nullptr) {
+	fprintf(stderr, "Error, static image not found.\n");
+	handle_signal(-1);
+      }
+    }
+    else
     {
       //get a fresh image from the camera
       capture >> images.frame;
       if (!capture.isOpened())
       {
-	fprintf(stderr, "ERROR: capture is NULL \n");
-	getchar();
-	return -1;
+	fprintf(stderr, "Error, image source not found.\n");
+	handle_signal(-1);
       }
-      
     }
-    else if(settings["static-image"].asBool())
-    {
-      images.frame = imread("static_image.jpg",CV_LOAD_IMAGE_COLOR);
-    }
-    else if(settings["streamed-image"].asBool())
-    {
-      capture.open("axis-camera.local/mjpg/video.mjpg");
-    }
+    
     //filter to HSV and then the color picker filter
     cvtColor(images.frame, images.hsv_image, CV_BGR2HSV);
     inRange(images.hsv_image, HSVs.hsv_min, HSVs.hsv_max, images.threshHold_image);
+    
     //find contours in the image
     vector< vector<Point> > contours;
     vector <Vec4i> hierarchy;
     getContours(images, contours, hierarchy);
 
     vector< vector<Point> > hull(contours.size());
-    findConvexHull(images, contours, hull,contour_data);
-    //findBoundingBox(images,contours);
-    //findSquares(images,hull);
+    findConvexHull(images, contours, hull, contour_data);
 
     if (settings["GUI"].asBool())
     {
@@ -157,15 +159,13 @@ int main(int argc, char **argv)
       snprintf(cmsg, sizeof(cmsg), "%.4f", contour_data.Angle);
       s_send(socket, string(cmsg));
     }
-    sleep(0.1);
-
+    
     //check if ESC is pressed to exit the program;
     if ((cvWaitKey(10) & 255) == 27)
       break;
   }
-
+  
   handle_signal(0);
-  return 0;
 }
 
 // XXX user is a const char * setting name, do not modify
@@ -177,66 +177,57 @@ static void trackbar_callback(int pos, void *user)
 }
 
 #define add_setting_slider(name, max_value) \
-  createTrackbar(name, "Control", NULL, 255, trackbar_callback, const_cast<char *>(name)); \
+  createTrackbar(name, "Control", nullptr, 255, trackbar_callback, const_cast<char *>(name)); \
   setTrackbarPos(name, "Control", settings[name].asInt())
 
-void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
+void init(Image_capsule &images, Settings &settings)
 {
-  //image properties
-  int height, width;
-
-  Size size;
-  if(settings["streamed-image"].asBool())
+  if(settings["mode"].asInt() == Settings::Mode::STREAM && !capture.open(settings["stream-path"].asString()))
   {
-    if(!capture.open("http://axis-camera.local/mjpg/video.mjpg"))
-    {
-      printf("Cant open the axis-cam!\n");
-    }
+    fprintf(stderr, "Failed to open mjpg stream for reading: %s\n", settings["stream-path"].asCString());
+    handle_signal(-1);
   }
   else
   {
     capture = VideoCapture(settings["camera-index"].asInt());
   }
   
-  
   if (!capture.isOpened())
   {
-    fprintf(stderr, "ERROR: capture is NULL \n");
-    getchar();
-    return;
+    fprintf(stderr, "Error, image source not found.\n");
+    handle_signal(-1);
   }
   
-  capture >> images.frame;
   if (settings["GUI"].asBool())
   {
     //make all the windows needed
     namedWindow("RGB", WINDOW_AUTOSIZE);
     if (settings["debug"].asBool())
     {
-
       namedWindow("Thresh", WINDOW_AUTOSIZE);
       namedWindow("Control", WINDOW_AUTOSIZE);
-    }
 
+      //make trackbars to control the HSV min max values
+      add_setting_slider("lowH", 255);
+      add_setting_slider("lowS", 255);
+      add_setting_slider("lowV", 255);
+      add_setting_slider("highH", 255);
+      add_setting_slider("highS", 255);
+      add_setting_slider("highV", 255);
+    }
   }
-  //get the camera image properties
+
+  int height, width;
+  Size size;
   height = images.frame.size().height;
   width = images.frame.size().width;
   size = Size(width, height);
+  
   //make our filtered images
   images.hsv_image = Mat(size, CV_8UC3);
   images.threshHold_image = Mat(size, CV_8UC1);
   images.contour_image = Mat(size, CV_8UC1);
   images.hull_image = Mat(size, CV_8UC1);
-  if(settings["debug"].asBool()) {
-    //make trackbars to control the HSV min max values
-    add_setting_slider("lowH", 255);
-    add_setting_slider("lowS", 255);
-    add_setting_slider("lowV", 255);
-    add_setting_slider("highH", 255);
-    add_setting_slider("highS", 255);
-    add_setting_slider("highV", 255);
-  }
 }
 
 void getContours(Image_capsule &images, vector< vector<Point> > &contours, vector <Vec4i> &hierarchy)

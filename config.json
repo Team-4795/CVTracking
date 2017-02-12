@@ -5,5 +5,8 @@
 	"highV" : 58,
 	"lowH" : 70,
 	"lowS" : 89,
-	"lowV" : 255
+	"lowV" : 255,
+	"mode" : 1,
+	"static-path" : "static_image.jpg",
+	"stream-path" : "http://axis-camera.local/mjpg/video.mjpg"
 }
