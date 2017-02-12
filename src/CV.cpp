@@ -219,6 +219,7 @@ void init(Image_capsule &images, Settings &settings)
 
   int height, width;
   Size size;
+  capture >> images.frame;
   height = images.frame.size().height;
   width = images.frame.size().width;
   size = Size(width, height);
