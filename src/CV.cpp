@@ -9,16 +9,17 @@ Settings settings;
 
 static void handle_signal(int signal)
 {
-  printf("Saving settings into config.json...\n");
   settings.save_config("config.json");
   switch (signal)
   {
+  case 0:
   case SIGINT:
   case SIGPIPE:
   case SIGTERM:
     exit(0);
   case SIGSEGV:
   default:
+    printf("Termination due to abnormal signal: %d\n", signal);
     exit(1);
   }
 }
@@ -58,21 +59,21 @@ int main(int argc, char **argv)
     switch (arg)
     {
     case 'u':
-      settings.GUI = true;
+      settings["GUI"] = true;
       break;
     case 'd':
-      settings.GUI = true;
-      settings.debug = true;
+      settings["GUI"] = true;
+      settings["debug"] = true;
       break;
     case 'c':
-      settings.camera_index = (int) strtol(optarg, NULL, 10);
+      settings["camera-index"] = (int) strtol(optarg, NULL, 10);
       break;
     case 's':
-      settings.static_image = true;
-      settings.static_path = optarg;
+      settings["static-image"] = true;
+      settings["static_path"] = optarg;
       break;
     case 'i':
-      settings.streamed_image = true;
+      settings["streamed-image"] = true;
       break;
     case 'h':
     default:
@@ -102,12 +103,12 @@ int main(int argc, char **argv)
   init(images, HSVs, settings);
 
   //main loop
-  while (settings.running)
+  while (settings["running"].asBool())
   {
     //make sure the scalars are updated with the new HSV values
-    HSVs.hsv_min = Scalar(settings.lowH, settings.lowS, settings.lowV);
-    HSVs.hsv_max = Scalar(settings.highH, settings.highS, settings.highV);
-    if(settings.static_image == false)
+    HSVs.hsv_min = Scalar(settings["lowH"].asInt(), settings["lowS"].asInt(), settings["lowV"].asInt());
+    HSVs.hsv_max = Scalar(settings["highH"].asInt(), settings["highS"].asInt(), settings["highV"].asInt());
+    if(!settings["static-image"].asBool())
     {
       //get a fresh image from the camera
       capture >> images.frame;
@@ -119,11 +120,11 @@ int main(int argc, char **argv)
       }
       
     }
-    else if(settings.static_image == true)
+    else if(settings["static-image"].asBool())
     {
       images.frame = imread("static_image.jpg",CV_LOAD_IMAGE_COLOR);
     }
-    else if(settings.streamed_image == true)
+    else if(settings["streamed-image"].asBool())
     {
       capture.open("axis-camera.local/mjpg/video.mjpg");
     }
@@ -140,11 +141,11 @@ int main(int argc, char **argv)
     //findBoundingBox(images,contours);
     //findSquares(images,hull);
 
-    if (settings.GUI)
+    if (settings["GUI"].asBool())
     {
       //show the raw image and the filtered images
       imshow("RGB", images.frame);
-      if (settings.debug)
+      if (settings["debug"].asBool())
         imshow("Thresh", images.threshHold_image);
     }
 
@@ -161,10 +162,21 @@ int main(int argc, char **argv)
       break;
   }
 
-  printf("Saving settings into config.json...\n");
-  settings.save_config("config.json");
+  handle_signal(0);
   return 0;
 }
+
+// XXX user is a const char * setting name, do not modify
+static void trackbar_callback(int pos, void *user)
+{
+  const char *setting = static_cast<const char *>(user);
+
+  settings[setting] = pos;
+}
+
+#define add_setting_slider(name, max_value) \
+  createTrackbar(name, "Control", NULL, 255, trackbar_callback, const_cast<char *>(name)); \
+  setTrackbarPos(name, "Control", settings[name].asInt())
 
 void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
 {
@@ -172,7 +184,7 @@ void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
   int height, width;
 
   Size size;
-  if(settings.streamed_image == true)
+  if(settings["streamed-image"].asBool())
   {
     if(!capture.open("http://axis-camera.local/mjpg/video.mjpg"))
     {
@@ -181,7 +193,7 @@ void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
   }
   else
   {
-    capture = VideoCapture(settings.camera_index);
+    capture = VideoCapture(settings["camera-index"].asInt());
   }
   
   
@@ -193,11 +205,11 @@ void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
   }
   
   capture >> images.frame;
-  if (settings.GUI)
+  if (settings["GUI"].asBool())
   {
     //make all the windows needed
     namedWindow("RGB", WINDOW_AUTOSIZE);
-    if (settings.debug)
+    if (settings["debug"].asBool())
     {
 
       namedWindow("Thresh", WINDOW_AUTOSIZE);
@@ -214,20 +226,17 @@ void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
   images.threshHold_image = Mat(size, CV_8UC1);
   images.contour_image = Mat(size, CV_8UC1);
   images.hull_image = Mat(size, CV_8UC1);
-  //make trackbars to control the HSV min max values
-  createTrackbar("lowH", "Control", &settings.lowH, 255);
-  createTrackbar("lowS", "Control", &settings.lowS, 255);
-  createTrackbar("lowV", "Control", &settings.lowV, 255);
-
-  createTrackbar("highH", "Control", &settings.highH, 255);
-  createTrackbar("highS", "Control", &settings.highS, 255);
-  createTrackbar("highV", "Control", &settings.highV, 255);
-  
-  //convert our min max HSV values to scalar
-  HSVs.hsv_min = Scalar(settings.lowH, settings.lowS, settings.lowV);
-  HSVs.hsv_max = Scalar(settings.highH, settings.highS, settings.highV);
-
+  if(settings["debug"].asBool()) {
+    //make trackbars to control the HSV min max values
+    add_setting_slider("lowH", 255);
+    add_setting_slider("lowS", 255);
+    add_setting_slider("lowV", 255);
+    add_setting_slider("highH", 255);
+    add_setting_slider("highS", 255);
+    add_setting_slider("highV", 255);
+  }
 }
+
 void getContours(Image_capsule &images, vector< vector<Point> > &contours, vector <Vec4i> &hierarchy)
 {
   //filter until only contours appear
