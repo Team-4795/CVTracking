@@ -26,11 +26,13 @@ static void handle_signal(int signal)
 
 void show_help(void)
 {
-  printf("CVTracking [-udh] [-c <camera index>]\n");
-  printf("  -u  User mode (camera view only)\n");
-  printf("  -d  Debug mode (camera, threshold, control views, settings sliders)\n");
-  printf("  -h  Show this help menu\n");
-  printf("  -c  Set the camera index to use (starts at zero)\n");
+  printf("CVTracking [-udih] [-c <camera index>] [-s <image path>]\n"
+	 "  -u  User mode (camera view only)\n"
+	 "  -d  Debug mode (camera, threshold, control views, settings sliders)\n"
+	 "  -h  Show this help menu\n"
+	 "  -c  Set the camera index to use (starts at zero)\n"
+	 "  -s  Use a static image instead of a connected camera\n"
+	 "  -i  Use an mjpg stream instead of a connected camera\n");
 }
 
 VideoCapture capture;
@@ -70,7 +72,7 @@ int main(int argc, char **argv)
       break;
     case 's':
       settings["static-image"] = true;
-      settings["static_path"] = optarg;
+      settings["static-path"] = optarg;
       break;
     case 'i':
       settings["streamed-image"] = true;
