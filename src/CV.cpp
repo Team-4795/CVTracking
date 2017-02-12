@@ -191,7 +191,7 @@ void init(Image_capsule &images, HSV_capsule &HSVs, Settings &settings)
     getchar();
     return;
   }
-  capture.set(CV_CAP_PROP_BRIGHTNESS, 0);
+  
   capture >> images.frame;
   if (settings.GUI)
   {
@@ -274,8 +274,8 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
 
       circle(images.frame, Point(u, v), 2, color, 4);
 
-      double cx = 360;
-      double f = 1078;
+      double cx = 400;
+      double f = 476.7;
       data.Angle = atan((u - cx) / f);
       data.X = u;
       data.Y = v;
@@ -283,7 +283,7 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
       char cmsg[50];
       snprintf(cmsg, sizeof(cmsg), "%.4f", radian_to_degrees(data.Angle));
       //printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", count, area, u, v, radian_to_degrees(angle));
-      putText(images.frame,cmsg,Point(u,v),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
+      putText(images.frame,cmsg,Point(u,v),FONT_HERSHEY_PLAIN,1.0,CV_RGB(255,255,0),2.0);
       count++;
     }
   }
