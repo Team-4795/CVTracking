@@ -52,5 +52,7 @@ void init(Image_capsule &images, Settings &settings);
 void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull,
 		    contourData data[]);
 void findTape(contourData *data,contourData *tape);
-void findGoal(contourData tape[],contourData goal[]);
+void findGoal(contourData *tape,contourData *goal);
+
+void setAngle(contourData object);
 #endif
