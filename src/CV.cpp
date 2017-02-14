@@ -299,6 +299,7 @@ void findTape(contourData *data,contourData *tape)
   int pos_thresh = 5;
   for(int i = 0;i < sizeof(data);i++)
   {
+    bool merged = false;
     if(data[i].X != NULL)
     {
       for(int y = i + 1;y < sizeof(data);i++)
@@ -309,10 +310,17 @@ void findTape(contourData *data,contourData *tape)
 	  {
 	    if (data[i].Y < data[y].Y + pos_thresh || data[i].Y > data[y].Y - pos_thresh)
 	    {
-	      tape[i].X = data[i].X;
-	      tape[i].Y = data[i].Y;
-	      tape[i].Area = data[i].Area;
+	      tape[i].X = (data[i].X + data[y].X) / 2;
+	      tape[i].Y = (data[i].Y + data[y].Y) / 2;
+	      tape[i].Area = (data[i].Area + data[y].Area) / 2;
+	      merged = true;
 	    }
+	  }
+	  if(merged == false)
+	  {
+	    tape[i].X = data[i].X;
+	    tape[i].Y = data[i].Y;
+	    tape[i].Area = data[i].Area;
 	  }
 	}
       }
