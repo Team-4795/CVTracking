@@ -182,10 +182,13 @@ static void trackbar_callback(int pos, void *user)
 
 void init(Image_capsule &images, Settings &settings)
 {
-  if(settings["mode"].asInt() == Settings::Mode::STREAM && !capture.open(settings["stream-path"].asString()))
+  if(settings["mode"].asInt() == Settings::Mode::STREAM)
   {
-    fprintf(stderr, "Failed to open mjpg stream for reading: %s\n", settings["stream-path"].asCString());
-    handle_signal(-1);
+    if (!capture.open(settings["stream-path"].asString()))
+      {
+        fprintf(stderr, "Failed to open mjpg stream for reading: %s\n", settings["stream-path"].asCString());
+        handle_signal(-1);
+      }
   }
   else
   {
