@@ -50,7 +50,5 @@ void getContours(Image_capsule &images, vector< vector<Point> > &contours, vecto
 void findSquares(Image_capsule &images, vector< vector<Point> > &contours);
 void init(Image_capsule &images, Settings &settings);
 void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull,
-		    contourData data[]);
-void findTape(contourData *data,contourData *tape);
-void findGoal(contourData tape[],contourData goal[]);
+		    contourData data);
 #endif

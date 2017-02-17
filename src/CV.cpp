@@ -141,9 +141,7 @@ int main(int argc, char **argv)
     getContours(images, contours, hierarchy);
 
     vector< vector<Point> > hull(contours.size());
-    contourData contour_data[contours.size()];
-    contourData tape[contours.size()] ;
-    contourData goal[contours.size()];
+    contourData contour_data;
     findConvexHull(images, contours, hull, contour_data);
 
     if (settings["GUI"].asBool())
@@ -157,7 +155,7 @@ int main(int argc, char **argv)
     if (contours.size() > 0)
     {
       char cmsg[32];
-      snprintf(cmsg, sizeof(cmsg), "%.4f", contour_data[1].Angle);
+      snprintf(cmsg, sizeof(cmsg), "%.4f", contour_data.Angle);
       s_send(socket, string(cmsg));
     }
     
@@ -260,7 +258,7 @@ double radian_to_degrees(double radian)
 }
 
 void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, vector<vector<Point> > &hull
-                    , contourData data[])
+                    , contourData data)
 {
   for (size_t i = 0; i < contours.size(); i++)
     convexHull(Mat(contours[i]), hull[i], false);
@@ -282,48 +280,17 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
 
       double cx = 400;
       double f = 476.7;
-      data[i].Angle = atan((u - cx) / f);
-      data[i].X = u;
-      data[i].Y = v;
-      data[i].Area = area;
+      data.Angle = atan((u - cx) / f);
+      data.X = u;
+      data.Y = v;
+      data.Area = area;
       char cmsg[50];
-      snprintf(cmsg, sizeof(cmsg), "%.4f", radian_to_degrees(data[i].Angle));
+      snprintf(cmsg, sizeof(cmsg), "%.4f", radian_to_degrees(data.Angle));
       //printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", count, area, u, v, radian_to_degrees(angle));
       putText(images.frame,cmsg,Point(u,v),FONT_HERSHEY_PLAIN,1.0,CV_RGB(255,255,0),2.0);
       count++;
     }
   }
-}
-
-void findTape(contourData *data,contourData *tape)
-{
-  int pos_thresh = 5;
-  for(int i = 0;i < sizeof(data);i++)
-  {
-    if(data[i].X != NULL)
-    {
-      for(int y = i + 1;y < sizeof(data);i++)
-      {
-	if(data[y].X != NULL)
-	{
-	  if (data[i].X < data[y].X + pos_thresh || data[i].X > data[y].X - pos_thresh)
-	  {
-	    if (data[i].Y < data[y].Y + pos_thresh || data[i].Y > data[y].Y - pos_thresh)
-	    {
-	      tape[i].X = data[i].X;
-	      tape[i].Y = data[i].Y;
-	      tape[i].Area = data[i].Area;
-	    }
-	  }
-	}
-      }
-    }
-  }
-}
-
-void findGoal(contourData tape[],contourData goal[])
-{
-  
 }
 
 // void findBoundingBox(Image_capsule &images, vector< vector<Point> > &contours)
