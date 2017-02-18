@@ -23,14 +23,14 @@ struct Settings
   string static_path = "static_image.jpg";
   string stream_path = "http://axis-camera.local/mjpg/video.mjpg";
 
-  int lowH = 70;
-  int highH = 56;
+  int lowH = 53;
+  int highH = 255;
 
-  int lowS = 89;
+  int lowS = 0;
   int highS = 255;
 
-  int lowV = 255;
-  int highV = 58;
+  int lowV = 150;
+  int highV = 255;
 };
 
 #endif
