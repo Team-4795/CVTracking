@@ -3,30 +3,34 @@
 
 #include <string>
 #include <fstream>
-#include <unordered_map>
-#include <json/json.h>
 
 using namespace std;
 
-class Settings : public Json::Value
+struct Settings
 {
-  struct FieldSpec {
-    Json::Value value;
-    bool save;
-  };
-  static const unordered_map<string,FieldSpec> defaults;
-public:
-  Settings(void);
+  bool running = true;
+  bool GUI = false;
+  bool debug = false;
 
   enum Mode {
     USB,
-    STATIC,
-    STREAM
+    STREAM,
+    STATIC
   };
-  
-  void load_defaults(void);
-  void load_config(const string &filename);
-  void save_config(const string &filename) const;
+  Mode mode;
+
+  int cam_index = 0;
+  string static_path = "static_image.jpg";
+  string stream_path = "http://axis-camera.local/mjpg/video.mjpg";
+
+  int lowH = 70;
+  int highH = 56;
+
+  int lowS = 89;
+  int highS = 255;
+
+  int lowV = 255;
+  int highV = 58;
 };
 
 #endif

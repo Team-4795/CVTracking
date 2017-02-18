@@ -7,82 +7,70 @@
 
 Settings settings;
 
-static void handle_signal(int signal)
-{
-  settings.save_config("config.json");
-  switch (signal)
-  {
-  case 0:
-  case SIGINT:
-  case SIGPIPE:
-  case SIGTERM:
-    exit(0);
-  case SIGSEGV:
-  default:
-    fprintf(stderr, "Termination due to abnormal signal: %d\n", signal);
-  case -1:
-    exit(1);
-  }
-}
-
 void show_help(void)
 {
-  printf("CVTracking [-hud] [-c <camera index>] [-s <image path>] [-i <stream url>]\n"
-	 "  -h  Show this help menu\n"
+  printf("CVTracking [-hud] [-c <camera index>] [-i <image path>] [-m <stream url>] [-hHsSvV <0-255>]\n"
 	 "  -u  User mode (camera view only)\n"
 	 "  -d  Debug mode (camera, threshold, control views, settings sliders)\n"
 	 "  -c  Set the camera index to use (starts at zero)\n"
-	 "  -s  Use a static image instead of a connected camera\n"
-	 "  -i  Use an mjpg stream instead of a connected camera\n");
+	 "  -i  Use a static image instead of a connected camera\n"
+	 "  -m  Use an mjpg stream instead of a connected camera\n"
+	 "  -h  Set low threshold hue value\n"
+	 "  -H  Set high threshold hue value\n"
+	 "  -s  Set low threshold saturation value\n"
+	 "  -S  Set high threshold saturation value\n"
+	 "  -v  Set low threshold value value\n"
+	 "  -V  Set high threshold value value\n");
 }
 
 VideoCapture capture;
 
 int main(int argc, char **argv)
 {
-  settings.load_config("config.json");
-
-  // setup signal handling to save settings always upon exit
-  struct sigaction action;
-  action.sa_flags = SA_RESTART;
-  action.sa_handler = SIG_IGN;
-  sigaction(SIGHUP, &action, nullptr);
-  sigaction(SIGQUIT, &action, nullptr);
-  sigaction(SIGUSR1, &action, nullptr);
-  sigaction(SIGUSR2, &action, nullptr);
-  action.sa_handler = handle_signal;
-  sigaction(SIGINT, &action, nullptr);
-  sigaction(SIGSEGV, &action, nullptr);
-  sigaction(SIGPIPE, &action, nullptr);
-  sigaction(SIGTERM, &action, nullptr);
-
   // parse command line arguments
   int arg;
   while ((arg = getopt(argc, argv, "hudc:s:i:")) != -1)
     switch (arg)
     {
-    case 'h':
     default:
       show_help();
       return (optopt == 'h' ? 0 : 1);
     case 'u':
-      settings["GUI"] = true;
+      settings.GUI = true;
       break;
     case 'd':
-      settings["GUI"] = true;
-      settings["debug"] = true;
+      settings.GUI = true;
+      settings.debug = true;
       break;
     case 'c':
-      settings["mode"] = Settings::Mode::USB;
-      settings["camera-index"] = (int) strtol(optarg, nullptr, 10);
-      break;
-    case 's':
-      settings["mode"] = Settings::Mode::STATIC;
-      settings["static-path"] = optarg;
+      settings.mode = Settings::Mode::USB;
+      settings.cam_index = (int) strtol(optarg, nullptr, 10);
       break;
     case 'i':
-      settings["mode"] = Settings::Mode::STREAM;
-      settings["stream-path"] = optarg;
+      settings.mode = Settings::Mode::STATIC;
+      settings.static_path = optarg;
+      break;
+    case 'm':
+      settings.mode = Settings::Mode::STREAM;
+      settings.stream_path = optarg;
+      break;
+    case 'h':
+      settings.lowH = (int) strtol(optarg, nullptr, 10) & 255L;
+      break;
+    case 'H':
+      settings.highH = (int) strtol(optarg, nullptr, 10) & 255L;
+      break;
+    case 's':
+      settings.lowS = (int) strtol(optarg, nullptr, 10) & 255L;
+      break;
+    case 'S':
+      settings.highS = (int) strtol(optarg, nullptr, 10) & 255L;
+      break;
+    case 'v':
+      settings.lowV = (int) strtol(optarg, nullptr, 10) & 255L;
+      break;
+    case 'V':
+      settings.highV = (int) strtol(optarg, nullptr, 10) & 255L;
       break;
     }
 
@@ -106,18 +94,18 @@ int main(int argc, char **argv)
   init(images, settings);
 
   //main loop
-  while (settings["running"].asBool())
+  while (settings.running)
   {
     //make sure the scalars are updated with the new HSV values
-    HSVs.hsv_min = Scalar(settings["lowH"].asInt(), settings["lowS"].asInt(), settings["lowV"].asInt());
-    HSVs.hsv_max = Scalar(settings["highH"].asInt(), settings["highS"].asInt(), settings["highV"].asInt());
+    HSVs.hsv_min = Scalar(settings.lowH, settings.lowS, settings.lowV);
+    HSVs.hsv_max = Scalar(settings.highH, settings.highS, settings.highV);
     
-    if(settings["mode"].asInt() == Settings::Mode::STATIC)
+    if(settings.mode == Settings::Mode::STATIC)
     {
-      images.frame = imread(settings["static-path"].asString(), CV_LOAD_IMAGE_COLOR);
+      images.frame = imread(settings.static_path, CV_LOAD_IMAGE_COLOR);
       if(images.frame.data == nullptr) {
 	fprintf(stderr, "Error, static image not found.\n");
-	handle_signal(-1);
+	return 1;
       }
     }
     else
@@ -127,7 +115,7 @@ int main(int argc, char **argv)
       if (!capture.isOpened())
       {
 	fprintf(stderr, "Error, image source not found.\n");
-	handle_signal(-1);
+	return 1;
       }
     }
     
@@ -144,11 +132,11 @@ int main(int argc, char **argv)
     contourData contour_data;
     findConvexHull(images, contours, hull, contour_data);
 
-    if (settings["GUI"].asBool())
+    if (settings.GUI)
     {
       //show the raw image and the filtered images
       imshow("RGB", images.frame);
-      if (settings["debug"].asBool())
+      if (settings.debug)
         imshow("Thresh", images.threshHold_image);
     }
 
@@ -163,58 +151,44 @@ int main(int argc, char **argv)
     if ((cvWaitKey(10) & 255) == 27)
       break;
   }
-  
-  handle_signal(0);
 }
-
-// XXX user is a const char * setting name, do not modify
-static void trackbar_callback(int pos, void *user)
-{
-  const char *setting = static_cast<const char *>(user);
-
-  settings[setting] = pos;
-}
-
-#define add_setting_slider(name, max_value)				\
-  createTrackbar(name, "Control", nullptr, 255, trackbar_callback, const_cast<char *>(name)); \
-  setTrackbarPos(name, "Control", settings[name].asInt())
 
 void init(Image_capsule &images, Settings &settings)
 {
-  if(settings["mode"].asInt() == Settings::Mode::STREAM)
+  if(settings.mode == Settings::Mode::STREAM)
   {
-    if(!capture.open(settings["stream-path"].asString())) {
-      fprintf(stderr, "Failed to open mjpg stream for reading: %s\n", settings["stream-path"].asCString());
-      handle_signal(-1);
+    if(!capture.open(settings.stream_path)) {
+      fprintf(stderr, "Failed to open mjpg stream for reading: %s\n", settings.stream_path.c_str());
+      exit(1);
     }
   }
   else
   {
-    capture = VideoCapture(settings["camera-index"].asInt());
+    capture = VideoCapture(settings.cam_index);
   }
   
   if (!capture.isOpened())
   {
     fprintf(stderr, "Error, image source not found.\n");
-    handle_signal(-1);
+    exit(1);
   }
   
-  if (settings["GUI"].asBool())
+  if (settings.GUI)
   {
     //make all the windows needed
     namedWindow("RGB", WINDOW_AUTOSIZE);
-    if (settings["debug"].asBool())
+    if (settings.debug)
     {
       namedWindow("Thresh", WINDOW_AUTOSIZE);
       namedWindow("Control", WINDOW_AUTOSIZE);
 
       //make trackbars to control the HSV min max values
-      add_setting_slider("lowH", 255);
-      add_setting_slider("lowS", 255);
-      add_setting_slider("lowV", 255);
-      add_setting_slider("highH", 255);
-      add_setting_slider("highS", 255);
-      add_setting_slider("highV", 255);
+      createTrackbar("lowH", "Control", &settings.lowH, 255);
+      createTrackbar("highH", "Control", &settings.highH, 255);
+      createTrackbar("lowS", "Control", &settings.lowS, 255);
+      createTrackbar("highS", "Control", &settings.highS, 255);
+      createTrackbar("lowV", "Control", &settings.lowV, 255);
+      createTrackbar("highV", "Control", &settings.highV, 255);
     }
   }
 
