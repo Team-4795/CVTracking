@@ -254,10 +254,12 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
 
       double cx = 400;
       double f = 476.7;
+      double ratio = 1;
       data.Angle = atan((u - cx) / f);
       data.X = u;
       data.Y = v;
       data.Area = area;
+      data.Dist = ratio * data.Dist;
       char cmsg[50];
       snprintf(cmsg, sizeof(cmsg), "%.4f", radian_to_degrees(data.Angle));
       //printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", count, area, u, v, radian_to_degrees(angle));

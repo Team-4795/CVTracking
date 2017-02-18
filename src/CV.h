@@ -39,6 +39,7 @@ class contourData
 {
 public:
   int Area;
+  int Dist;
   int X;
   int Y;
   double Angle;
