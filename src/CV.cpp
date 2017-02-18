@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 {
   // parse command line arguments
   int arg;
-  while ((arg = getopt(argc, argv, "hudc:s:i:")) != -1)
+  while ((arg = getopt(argc, argv, "hudc:s:i:m:")) != -1)
     switch (arg)
     {
     default:
