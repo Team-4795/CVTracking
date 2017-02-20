@@ -238,6 +238,7 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
     convexHull(Mat(contours[i]), hull[i], false);
   int count = 1;
   int threshold_area = 200;
+  int largestArea = 0;
   //printf("%d\n",threshold_area);
   for (size_t i = 0; i < contours.size(); i++)
   {
@@ -251,19 +252,23 @@ void findConvexHull(Image_capsule &images, vector< vector<Point> > &contours, ve
       int v = int(M.m01 / M.m00);
 
       circle(images.frame, Point(u, v), 2, color, 4);
-
-      double cx = 400;
-      double f = 476.7;
-      double ratio = 1;
-      data.Angle = atan((u - cx) / f);
-      data.X = u;
-      data.Y = v;
-      data.Area = area;
-      data.Dist = ratio * data.Dist;
-      char cmsg[50];
-      snprintf(cmsg, sizeof(cmsg), "%.4f", radian_to_degrees(data.Angle));
-      //printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", count, area, u, v, radian_to_degrees(angle));
-      putText(images.frame,cmsg,Point(u,v),FONT_HERSHEY_PLAIN,1.0,CV_RGB(255,255,0),2.0);
+      if(area > largestArea)
+      {
+	largestArea = area;
+	
+	double cx = 400;
+	double f = 476.7;
+	double ratio = 1;
+	data.Angle = atan((u - cx) / f);
+	data.X = u;
+	data.Y = v;
+	data.Area = area;
+	data.Dist = ratio * data.Dist;
+	char cmsg[50];
+	snprintf(cmsg, sizeof(cmsg), "%.4f", radian_to_degrees(data.Angle));
+	//printf("target#%d: Area: %d X:%d Y:%d Angle: %f \n", count, area, u, v, radian_to_degrees(angle));
+	putText(images.frame,cmsg,Point(u,v),FONT_HERSHEY_PLAIN,1.0,CV_RGB(255,255,0),2.0);
+      }
       count++;
     }
   }
